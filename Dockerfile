@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app files
 COPY app.py .
-COPY static/ ./static/
+COPY index.html .
 
 # Use /tmp for SQLite on cloud (writable)
 ENV DATA_DIR=/tmp
