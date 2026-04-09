@@ -16,10 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY app.py .
 COPY index.html .
+COPY gunicorn.conf.py .
 
 # Use /tmp for SQLite on cloud (writable)
 ENV DATA_DIR=/tmp
 
 EXPOSE 8080
 
-CMD ["/bin/sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120"]
+CMD ["gunicorn", "app:app", "-c", "gunicorn.conf.py"]
