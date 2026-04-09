@@ -85,8 +85,37 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
-    margin-top: 20px;
+    margin-top: 12px;
   }
+
+  .topic-group { margin-bottom: 32px; }
+  .topic-header {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--gold);
+    padding: 8px 12px;
+    margin-bottom: 0;
+    border-left: 3px solid var(--gold);
+    background: rgba(201,168,76,0.07);
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .topic-header:hover { background: rgba(201,168,76,0.13); }
+  .topic-header .topic-arrow { font-size: 0.7rem; transition: transform 0.2s; }
+  .topic-header.collapsed .topic-arrow { transform: rotate(-90deg); }
+  .topic-header .topic-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-family: 'Source Sans 3', sans-serif;
+    color: rgba(201,168,76,0.6);
+    font-weight: 400;
+  }
+  .topic-body.collapsed { display: none; }
 
   .lesson-card {
     background: rgba(255,255,255,0.06);
@@ -632,6 +661,12 @@
     </div>
 
     <div class="form-row">
+      <label>Topic / Folder (optional)</label>
+      <input type="text" id="topic" placeholder="e.g. Finesses, Trump Management, Slams..." list="topic-suggestions" autocomplete="off" />
+      <datalist id="topic-suggestions"></datalist>
+    </div>
+
+    <div class="form-row">
       <label>Technique (optional)</label>
       <input type="text" id="technique" placeholder="e.g. Trump management, Finesse, Endplay..." />
     </div>
@@ -912,7 +947,26 @@ async function loadLessons(forScores=false) {
         <p>No lessons yet. Create one to get started!</p></div>`;
       return;
     }
-    grid.innerHTML = lessons.map(l => `
+    // Group lessons by topic
+    const groups = {};
+    lessons.forEach(l => {
+      const topic = l.topic || '';
+      if (!groups[topic]) groups[topic] = [];
+      groups[topic].push(l);
+    });
+
+    // Sort: named topics alphabetically, then uncategorised last
+    const topicKeys = Object.keys(groups).sort((a, b) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b);
+    });
+
+    // Populate topic datalist
+    const dl = document.getElementById('topic-suggestions');
+    dl.innerHTML = topicKeys.filter(t => t).map(t => `<option value="${escHtml(t)}">`).join('');
+
+    const cardHtml = l => `
       <div class="lesson-card" onclick="openLesson(${l.id})">
         <button class="delete-btn" onclick="event.stopPropagation(); deleteLesson(${l.id})">✕</button>
         <button class="edit-btn" onclick="event.stopPropagation(); editLesson(${l.id})">✎</button>
@@ -920,6 +974,18 @@ async function loadLessons(forScores=false) {
         <div class="contract-badge">${formatContract(l.contract)} by ${PLAYER_NAMES[l.declarer]}</div>
         <div class="technique">${escHtml(l.technique || 'General Practice')}</div>
         <div class="par-info">Target: ${l.contract[0] * 1 + 6} tricks</div>
+      </div>`;
+
+    grid.innerHTML = topicKeys.map(topic => `
+      <div class="topic-group">
+        <div class="topic-header" onclick="toggleTopic(this)">
+          <span class="topic-arrow">▾</span>
+          ${escHtml(topic || 'Uncategorised')}
+          <span class="topic-count">${groups[topic].length} lesson${groups[topic].length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="topic-body">
+          <div class="lesson-grid">${groups[topic].map(cardHtml).join('')}</div>
+        </div>
       </div>`).join('');
   } else {
     const sel = document.getElementById('score-filter');
@@ -961,6 +1027,7 @@ async function createLesson() {
   if (!lead || lead.length < 2) return toast('Please enter the opening lead (e.g. SA)');
 
   const pbn = `N:${N} ${E} ${S} ${W}`;
+  const topic = document.getElementById('topic').value.trim();
   const isEdit = !!editingLessonId;
   const url = isEdit ? API + '/lessons/' + editingLessonId : API + '/lessons';
   const method = isEdit ? 'PUT' : 'POST';
@@ -969,13 +1036,13 @@ async function createLesson() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, technique, explanation, pbn, contract, declarer, lead })
+      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead })
     });
     if (!res.ok) throw new Error('Server error');
     const data = await res.json();
     toast(isEdit ? '✅ Lesson updated!' : '✅ Lesson saved! DDS par: ' + data.par_tricks + ' tricks');
     editingLessonId = null;
-    ['title','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
+    ['title','topic','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
       .forEach(id => document.getElementById(id).value = '');
     showPage('lessons');
   } catch(e) {
@@ -994,6 +1061,7 @@ async function editLesson(id) {
   document.getElementById('hand-S').value = parts[2];
   document.getElementById('hand-W').value = parts[3];
   document.getElementById('title').value = lesson.title;
+  document.getElementById('topic').value = lesson.topic || '';
   document.getElementById('technique').value = lesson.technique || '';
   document.getElementById('explanation').value = lesson.explanation || '';
   document.getElementById('contract').value = lesson.contract;
@@ -1009,7 +1077,14 @@ function newLesson() {
   editingLessonId = null;
   document.getElementById('create-page-title').textContent = 'Create New Lesson';
   document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
+  ['title','topic','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
+    .forEach(id => document.getElementById(id).value = '');
   showPage('create');
+}
+
+function toggleTopic(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('collapsed');
 }
 
 function loadSampleHand() {

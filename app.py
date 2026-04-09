@@ -50,6 +50,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS lessons (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             title        TEXT NOT NULL,
+            topic        TEXT DEFAULT '',
             technique    TEXT DEFAULT '',
             explanation  TEXT DEFAULT '',
             pbn          TEXT NOT NULL,
@@ -73,6 +74,12 @@ def init_db():
         );
     ''')
     conn.commit()
+    # Migration: add topic column to existing databases
+    try:
+        conn.execute('ALTER TABLE lessons ADD COLUMN topic TEXT DEFAULT ""')
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     conn.close()
 
 # ── Score calculation ─────────────────────────────────────────────────────────
@@ -140,9 +147,9 @@ def create_lesson():
         print('DDS par error:', e)
     conn = get_db()
     cur  = conn.execute(
-        'INSERT INTO lessons (title,technique,explanation,pbn,contract,declarer,lead,par_tricks) '
-        'VALUES (?,?,?,?,?,?,?,?)',
-        (d['title'], d.get('technique',''), d.get('explanation',''),
+        'INSERT INTO lessons (title,topic,technique,explanation,pbn,contract,declarer,lead,par_tricks) '
+        'VALUES (?,?,?,?,?,?,?,?,?)',
+        (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
          d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks))
     lid = cur.lastrowid
     conn.commit(); conn.close()
@@ -164,8 +171,8 @@ def update_lesson(lid):
         print('DDS par error:', e)
     conn = get_db()
     conn.execute(
-        'UPDATE lessons SET title=?,technique=?,explanation=?,pbn=?,contract=?,declarer=?,lead=?,par_tricks=? WHERE id=?',
-        (d['title'], d.get('technique',''), d.get('explanation',''),
+        'UPDATE lessons SET title=?,topic=?,technique=?,explanation=?,pbn=?,contract=?,declarer=?,lead=?,par_tricks=? WHERE id=?',
+        (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
          d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, lid))
     conn.commit(); conn.close()
     return jsonify({'id': lid, 'par_tricks': par_tricks})
