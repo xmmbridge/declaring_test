@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Declaring Test</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  :root {
+    --green: #1a5c2e;
+    --green-light: #2d7a42;
+    --green-dark: #0f3a1c;
+    --felt: #1e6b38;
+    --gold: #c9a84c;
+    --gold-light: #e4c97a;
+    --cream: #f5f0e8;
+    --red: #cc2200;
+    --black: #1a1a1a;
+    --card-bg: #fefefe;
+    --spades: #1a1a1a;
+    --hearts: #cc2200;
+    --diamonds: #cc2200;
+    --clubs: #1a1a1a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--green-dark);
+    color: var(--cream);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  header h1 span { color: var(--cream); }
+  .nav-tabs { display: flex; gap: 8px; }
+  .nav-tab {
+    padding: 8px 20px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover, .nav-tab.active {
+    background: var(--gold);
+    color: var(--green-dark);
+    font-weight: 600;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── LESSON LIST ── */
+  .page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+  }
+
+  .lesson-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .lesson-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .lesson-card:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+  .lesson-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+  .lesson-card .contract-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--green-dark);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .lesson-card .technique {
+    font-size: 0.8rem;
+    color: rgba(245,240,232,0.6);
+    font-style: italic;
+  }
+  .lesson-card .par-info {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--gold-light);
+  }
+  .delete-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: rgba(245,240,232,0.3);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .delete-btn:hover { color: var(--red); }
+  .edit-btn {
+    position: absolute;
+    top: 12px;
+    right: 36px;
+    background: none;
+    border: none;
+    color: rgba(245,240,232,0.3);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .edit-btn:hover { color: var(--gold); }
+
+  /* ── FORMS ── */
+  .form-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 8px;
+    padding: 28px;
+    max-width: 700px;
+  }
+  .form-row { margin-bottom: 18px; }
+  .form-row label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--gold-light);
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 4px;
+    color: var(--cream);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+  .form-row textarea { resize: vertical; min-height: 80px; }
+  .form-row select option { background: #1a3a25; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .hand-input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .hand-input { }
+  .hand-input label {
+    font-size: 0.8rem;
+    color: rgba(245,240,232,0.7);
+    display: block;
+    margin-bottom: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .hand-hint {
+    font-size: 0.75rem;
+    color: rgba(245,240,232,0.4);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  .btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--green-dark);
+  }
+  .btn-primary:hover { background: var(--gold-light); }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+  }
+  .btn-secondary:hover { background: rgba(201,168,76,0.1); }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { background: #aa1a00; }
+
+  /* ── GAME TABLE ── */
+  #game-page {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  #game-page.active { display: flex; }
+
+  .game-header {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 8px;
+    padding: 16px 24px;
+  }
+  .game-info h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+  }
+  .game-info p { font-size: 0.85rem; color: rgba(245,240,232,0.7); margin-top: 4px; }
+  .score-display { text-align: right; }
+  .score-display .tricks {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+  }
+  .score-display .tricks-label {
+    font-size: 0.75rem;
+    color: rgba(245,240,232,0.6);
+    text-transform: uppercase;
+  }
+
+  /* ── BRIDGE TABLE ── */
+  .bridge-table {
+    position: relative;
+    width: 680px;
+    height: 580px;
+    background: radial-gradient(ellipse at center, #1e6b38 0%, #145228 60%, #0f3a1c 100%);
+    border-radius: 16px;
+    border: 4px solid #8b6914;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.3);
+  }
+
+  /* Position areas on the table */
+  .hand-area {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* North hand - top center */
+  .hand-area.north { top: 12px; left: 50%; transform: translateX(-50%); }
+  /* South hand - bottom center (declarer) */
+  .hand-area.south { bottom: 12px; left: 50%; transform: translateX(-50%); }
+  /* East hand - right middle */
+  .hand-area.east { right: 20px; top: 50%; transform: translateY(-50%); }
+  /* West hand - left middle */
+  .hand-area.west { left: 20px; top: 50%; transform: translateY(-50%); }
+
+  /* E/W cards stacked in a column, each card rotated landscape */
+  #hand-E-cards, #hand-W-cards {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .card.side {
+    transform: rotate(90deg);
+    margin: -10px 0;
+  }
+
+  .hand-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(245,240,232,0.5);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .hand-label.declarer-label { color: var(--gold); }
+  .hand-label.dummy-label { color: #88ccaa; }
+
+  /* Cards in hand */
+  .cards-row {
+    display: flex;
+    gap: -4px;
+  }
+  .cards-row.horizontal { flex-direction: row; }
+  .cards-row.vertical { flex-direction: column; gap: 2px; }
+
+  /* Individual card */
+  .card {
+    width: 44px;
+    height: 64px;
+    background: var(--card-bg);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: default;
+    transition: all 0.15s;
+    margin: 0 -6px;
+    position: relative;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    user-select: none;
+  }
+  .card:first-child { margin-left: 0; }
+  .card.playable {
+    cursor: pointer;
+    border-color: var(--gold);
+  }
+  .card.playable:hover {
+    transform: translateY(-10px);
+    z-index: 10;
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.5);
+  }
+  .card.face-down {
+    background: linear-gradient(135deg, #1a5c8a, #0f3a5c);
+    border-color: #2a7caa;
+    cursor: default;
+  }
+  .card.face-down::after {
+    content: '🂠';
+    font-size: 2rem;
+    opacity: 0.3;
+  }
+  .card.played-card { opacity: 0.4; }
+
+  .card-rank { font-size: 0.85rem; line-height: 1; }
+  .card-suit { font-size: 0.8rem; line-height: 1; }
+  .card.spades .card-rank, .card.spades .card-suit { color: var(--spades); }
+  .card.hearts .card-rank, .card.hearts .card-suit { color: var(--hearts); }
+  .card.diamonds .card-rank, .card.diamonds .card-suit { color: var(--diamonds); }
+  .card.clubs .card-rank, .card.clubs .card-suit { color: var(--clubs); }
+
+  /* Compact card for side hands */
+  .card.compact {
+    width: 38px;
+    height: 52px;
+    margin: 0 -8px;
+    font-size: 0.75rem;
+  }
+
+  /* ── TRICK AREA (center of table) ── */
+  .trick-area {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px;
+    height: 200px;
+    display: grid;
+    grid-template-areas:
+      ".    north ."
+      "west .     east"
+      ".    south .";
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 4px;
+  }
+  .trick-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .trick-slot.north { grid-area: north; }
+  .trick-slot.south { grid-area: south; }
+  .trick-slot.east { grid-area: east; }
+  .trick-slot.west { grid-area: west; }
+
+  .trick-card {
+    width: 46px;
+    height: 66px;
+    background: var(--card-bg);
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+  }
+  .trick-card.winning { border-color: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.6); }
+  .trick-card.spades { color: var(--spades); }
+  .trick-card.hearts { color: var(--hearts); }
+  .trick-card.diamonds { color: var(--diamonds); }
+  .trick-card.clubs { color: var(--clubs); }
+
+  /* ── TRICK COUNTER ── */
+  .trick-counters {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    text-align: right;
+  }
+  .trick-counters .ns { color: #88ccaa; }
+  .trick-counters .ew { color: #cc8888; }
+
+  /* ── NEXT TO PLAY INDICATOR ── */
+  .turn-indicator {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--gold);
+    color: var(--green-dark);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  /* ── RESULT OVERLAY ── */
+  .result-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .result-overlay.show { display: flex; }
+  .result-box {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 40px 60px;
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+  }
+  .result-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  .result-box.made h2 { color: #88ee88; }
+  .result-box.down h2 { color: #ee6666; }
+  .result-box .score-big {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    color: var(--gold);
+    margin: 16px 0;
+  }
+  .result-box p { color: rgba(245,240,232,0.8); margin-bottom: 8px; }
+  .result-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+
+  /* ── STUDENT NAME INPUT ── */
+  .student-form {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .student-form.show { display: flex; }
+  .student-form-box {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+  }
+  .student-form-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+
+  /* ── SCORES TABLE ── */
+  .scores-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+  .scores-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.3);
+    color: var(--gold);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+  }
+  .scores-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.9rem;
+  }
+  .scores-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .result-made { color: #88ee88; font-weight: 600; }
+  .result-down { color: #ee6666; font-weight: 600; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(0,0,0,0.9);
+    border: 1px solid var(--gold);
+    color: var(--cream);
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    z-index: 200;
+    transition: transform 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 720px) {
+    .bridge-table { width: 360px; height: 380px; }
+    .card { width: 30px; height: 44px; font-size: 0.65rem; margin: 0 -8px; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(245,240,232,0.4);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state p { font-size: 1rem; }
+
+  /* suit colors inline */
+  .s { color: #aaa; }
+  .h { color: #ff6666; }
+  .d { color: #ff6666; }
+  .c { color: #aaa; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Declaring <span>Test</span></h1>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('lessons')">📚 Lessons</button>
+    <button class="nav-tab" onclick="newLesson()">➕ Create Lesson</button>
+    <button class="nav-tab" onclick="showPage('scores')">📊 Scores</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 1: LESSON LIST
+══════════════════════════════════════════════════════ -->
+<div class="page active" id="lessons-page">
+  <div class="page-title">Available Lessons</div>
+  <div class="lesson-grid" id="lesson-grid">
+    <div class="empty-state">
+      <div class="icon">🃏</div>
+      <p>No lessons yet. Create one to get started!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 2: CREATE LESSON
+══════════════════════════════════════════════════════ -->
+<div class="page" id="create-page">
+  <div class="page-title" id="create-page-title">Create New Lesson</div>
+  <div class="form-card">
+
+    <div class="form-row">
+      <label>Lesson Title</label>
+      <input type="text" id="title" placeholder="e.g. Drawing Trumps — Don't Rush!" />
+    </div>
+
+    <div class="form-row">
+      <label>Technique (optional)</label>
+      <input type="text" id="technique" placeholder="e.g. Trump management, Finesse, Endplay..." />
+    </div>
+
+    <div class="form-row">
+      <label>Enter the 4 Hands
+        <span style="font-weight:300; font-size:0.75rem; text-transform:none; margin-left:8px;">
+          (Spades.Hearts.Diamonds.Clubs — use T for Ten)
+        </span>
+      </label>
+      <div class="hand-input-grid">
+        <div class="hand-input">
+          <label>♠ North</label>
+          <input type="text" id="hand-N" placeholder="AKQ.JT9.432.876" />
+        </div>
+        <div class="hand-input">
+          <label>♠ East</label>
+          <input type="text" id="hand-E" placeholder="JT9.876.AKQ.432" />
+        </div>
+        <div class="hand-input">
+          <label>♠ South</label>
+          <input type="text" id="hand-S" placeholder="876.AKQ.JT9.432" />
+        </div>
+        <div class="hand-input">
+          <label>♠ West</label>
+          <input type="text" id="hand-W" placeholder="432.432.876.AKQJT" />
+        </div>
+      </div>
+      <p class="hand-hint">Example: AKQ.JT98.76.KJ32 means ♠AKQ ♥JT98 ♦76 ♣KJ32</p>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Contract</label>
+        <select id="contract">
+          <option value="1C">1♣</option><option value="1D">1♦</option>
+          <option value="1H">1♥</option><option value="1S">1♠</option>
+          <option value="1N">1NT</option>
+          <option value="2C">2♣</option><option value="2D">2♦</option>
+          <option value="2H">2♥</option><option value="2S">2♠</option>
+          <option value="2N">2NT</option>
+          <option value="3C">3♣</option><option value="3D">3♦</option>
+          <option value="3H">3♥</option><option value="3S" selected>3♠</option>
+          <option value="3N">3NT</option>
+          <option value="4C">4♣</option><option value="4D">4♦</option>
+          <option value="4H">4♥</option><option value="4S">4♠</option>
+          <option value="4N">4NT</option>
+          <option value="5C">5♣</option><option value="5D">5♦</option>
+          <option value="5H">5♥</option><option value="5S">5♠</option>
+          <option value="6C">6♣</option><option value="6D">6♦</option>
+          <option value="6H">6♥</option><option value="6S">6♠</option>
+          <option value="6N">6NT</option>
+          <option value="7C">7♣</option><option value="7D">7♦</option>
+          <option value="7H">7♥</option><option value="7S">7♠</option>
+          <option value="7N">7NT</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Declarer</label>
+        <select id="declarer">
+          <option value="N">North</option>
+          <option value="E">East</option>
+          <option value="S" selected>South</option>
+          <option value="W">West</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Opening Lead
+        <span style="font-weight:300; font-size:0.75rem; text-transform:none; margin-left:8px;">
+          (e.g. SA = Ace of Spades, H7 = 7 of Hearts)
+        </span>
+      </label>
+      <input type="text" id="lead" placeholder="e.g. SA or H7 or DK" maxlength="2" />
+    </div>
+
+    <div class="form-row">
+      <label>Explanation / Teaching Note (optional)</label>
+      <textarea id="explanation" placeholder="What should students learn from this hand? What is the key play?"></textarea>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:8px;">
+      <button class="btn btn-primary" id="save-lesson-btn" onclick="createLesson()">💾 Save Lesson</button>
+      <button class="btn btn-secondary" onclick="loadSampleHand()">🎲 Load Sample Hand</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 3: SCORES
+══════════════════════════════════════════════════════ -->
+<div class="page" id="scores-page">
+  <div class="page-title">Score Records</div>
+  <div class="form-row" style="max-width:300px; margin-bottom:20px;">
+    <label>Filter by Lesson</label>
+    <select id="score-filter" onchange="loadScores()">
+      <option value="">All Lessons</option>
+    </select>
+  </div>
+  <div id="scores-container">
+    <div class="empty-state"><div class="icon">📊</div><p>No scores yet.</p></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 4: GAME (Bridge Table)
+══════════════════════════════════════════════════════ -->
+<div class="page" id="game-page">
+  <div class="game-header">
+    <div class="game-info">
+      <h2 id="game-title">—</h2>
+      <p id="game-subtitle">—</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <div class="score-display">
+        <div class="tricks" id="tricks-display">0 / 0</div>
+        <div class="tricks-label">Tricks Needed / Target</div>
+      </div>
+      <button class="btn btn-secondary" style="font-size:0.8rem;" onclick="showPage('lessons')">← Back</button>
+    </div>
+  </div>
+
+  <div class="bridge-table" id="bridge-table">
+    <div class="turn-indicator" id="turn-indicator">Your turn</div>
+
+    <!-- NORTH HAND -->
+    <div class="hand-area north">
+      <div class="hand-label" id="N-label">North</div>
+      <div class="cards-row horizontal" id="hand-N-cards"></div>
+    </div>
+
+    <!-- WEST HAND -->
+    <div class="hand-area west">
+      <div class="hand-label" id="W-label">West</div>
+      <div class="cards-row horizontal" id="hand-W-cards"></div>
+    </div>
+
+    <!-- EAST HAND -->
+    <div class="hand-area east">
+      <div class="hand-label" id="E-label">East</div>
+      <div class="cards-row horizontal" id="hand-E-cards"></div>
+    </div>
+
+    <!-- TRICK AREA (center) -->
+    <div class="trick-area">
+      <div class="trick-slot north" id="trick-N"></div>
+      <div class="trick-slot west" id="trick-W"></div>
+      <div class="trick-slot east" id="trick-E"></div>
+      <div class="trick-slot south" id="trick-S"></div>
+    </div>
+
+    <!-- SOUTH HAND (declarer) -->
+    <div class="hand-area south">
+      <div class="hand-label" id="S-label">South</div>
+      <div class="cards-row horizontal" id="hand-S-cards"></div>
+    </div>
+
+    <!-- Trick counters -->
+    <div class="trick-counters">
+      <div class="ns">NS: <span id="ns-tricks">0</span></div>
+      <div class="ew">EW: <span id="ew-tricks">0</span></div>
+    </div>
+  </div>
+
+  <!-- Explanation panel -->
+  <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:16px; padding:16px 20px;
+    background:rgba(0,0,0,0.3); border:1px solid rgba(201,168,76,0.2); border-radius:8px;
+    font-size:0.85rem; color:rgba(245,240,232,0.7); display:none;">
+    <strong style="color:var(--gold);">📖 Teaching Note:</strong>
+    <span id="explanation-text"></span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STUDENT NAME MODAL
+══════════════════════════════════════════════════════ -->
+<div class="student-form" id="student-form">
+  <div class="student-form-box">
+    <h2>Who is playing?</h2>
+    <div class="form-row" style="text-align:left;">
+      <label>Your Name</label>
+      <input type="text" id="student-name" placeholder="Enter your name..." />
+    </div>
+    <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="startGame()">
+      Start Playing →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     RESULT OVERLAY
+══════════════════════════════════════════════════════ -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box" id="result-box">
+    <h2 id="result-heading">—</h2>
+    <div class="score-big" id="result-score">—</div>
+    <p id="result-detail">—</p>
+    <p id="result-contract">—</p>
+    <div class="result-buttons">
+      <button class="btn btn-secondary" onclick="playAgain()">▶ Play Again</button>
+      <button class="btn btn-primary" onclick="document.getElementById('result-overlay').classList.remove('show'); showPage('lessons')">← Lessons</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ═══════════════════════════════════════════════════════
+
+const API = '/api';
+
+const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
+const SUIT_NAMES   = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
+const RANK_ORDER   = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const PLAYERS      = ['N','E','S','W'];
+const PLAYER_NAMES = { N:'North', E:'East', S:'South', W:'West' };
+const LEFT_OF      = { N:'W', E:'N', S:'E', W:'S' };  // who leads: left of declarer
+const NEXT_PLAYER  = { N:'E', E:'S', S:'W', W:'N' };  // clockwise
+
+let editingLessonId = null;
+
+// Game state
+let state = {
+  lesson: null,
+  hands: { N:[], E:[], S:[], W:[] },          // remaining cards per hand
+  originalHands: { N:[], E:[], S:[], W:[] },   // initial cards
+  trump: '',          // S/H/D/C/N
+  declarer: '',       // N/E/S/W
+  dummy: '',          // partner of declarer
+  contract: '',       // e.g. '4S'
+  contractLevel: 0,
+  target: 0,          // tricks needed to make contract
+  currentTrick: [],   // [{player, card}, ...]
+  trickLeader: '',    // who leads current trick
+  nsTricks: 0,
+  ewTricks: 0,
+  allPlayedCards: [], // full history
+  studentName: '',
+  gameOver: false,
+  playSequence: []    // for recording
+};
+
+// ═══════════════════════════════════════════════════════
+//  PAGE NAVIGATION
+// ═══════════════════════════════════════════════════════
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(name + '-page').classList.add('active');
+  const tabs = { lessons:0, create:1, scores:2 };
+  if (tabs[name] !== undefined)
+    document.querySelectorAll('.nav-tab')[tabs[name]].classList.add('active');
+
+  if (name === 'lessons') loadLessons();
+  if (name === 'scores') { loadLessons(true); loadScores(); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LESSONS
+// ═══════════════════════════════════════════════════════
+
+async function loadLessons(forScores=false) {
+  const res = await fetch(API + '/lessons');
+  const lessons = await res.json();
+
+  if (!forScores) {
+    const grid = document.getElementById('lesson-grid');
+    if (!lessons.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🃏</div>
+        <p>No lessons yet. Create one to get started!</p></div>`;
+      return;
+    }
+    grid.innerHTML = lessons.map(l => `
+      <div class="lesson-card" onclick="openLesson(${l.id})">
+        <button class="delete-btn" onclick="event.stopPropagation(); deleteLesson(${l.id})">✕</button>
+        <button class="edit-btn" onclick="event.stopPropagation(); editLesson(${l.id})">✎</button>
+        <h3>${escHtml(l.title)}</h3>
+        <div class="contract-badge">${formatContract(l.contract)} by ${PLAYER_NAMES[l.declarer]}</div>
+        <div class="technique">${escHtml(l.technique || 'General Practice')}</div>
+        <div class="par-info">Target: ${l.contract[0] * 1 + 6} tricks</div>
+      </div>`).join('');
+  } else {
+    const sel = document.getElementById('score-filter');
+    sel.innerHTML = '<option value="">All Lessons</option>' +
+      lessons.map(l => `<option value="${l.id}">${escHtml(l.title)}</option>`).join('');
+  }
+}
+
+async function deleteLesson(id) {
+  if (!confirm('Delete this lesson?')) return;
+  await fetch(API + '/lessons/' + id, { method: 'DELETE' });
+  loadLessons();
+  toast('Lesson deleted');
+}
+
+function formatContract(c) {
+  const suitMap = { S:'♠', H:'♥', D:'♦', C:'♣', N:'NT' };
+  return c[0] + (suitMap[c[1]] || c[1]);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREATE LESSON
+// ═══════════════════════════════════════════════════════
+
+async function createLesson() {
+  const N = document.getElementById('hand-N').value.trim().toUpperCase();
+  const E = document.getElementById('hand-E').value.trim().toUpperCase();
+  const S = document.getElementById('hand-S').value.trim().toUpperCase();
+  const W = document.getElementById('hand-W').value.trim().toUpperCase();
+  const title = document.getElementById('title').value.trim();
+  const contract = document.getElementById('contract').value;
+  const declarer = document.getElementById('declarer').value;
+  const lead = document.getElementById('lead').value.trim().toUpperCase();
+  const technique = document.getElementById('technique').value.trim();
+  const explanation = document.getElementById('explanation').value.trim();
+
+  if (!N || !E || !S || !W) return toast('Please enter all 4 hands');
+  if (!title) return toast('Please enter a title');
+  if (!lead || lead.length < 2) return toast('Please enter the opening lead (e.g. SA)');
+
+  const pbn = `N:${N} ${E} ${S} ${W}`;
+  const isEdit = !!editingLessonId;
+  const url = isEdit ? API + '/lessons/' + editingLessonId : API + '/lessons';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, technique, explanation, pbn, contract, declarer, lead })
+    });
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    toast(isEdit ? '✅ Lesson updated!' : '✅ Lesson saved! DDS par: ' + data.par_tricks + ' tricks');
+    editingLessonId = null;
+    ['title','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
+      .forEach(id => document.getElementById(id).value = '');
+    showPage('lessons');
+  } catch(e) {
+    toast('Error saving lesson: ' + e.message);
+  }
+}
+
+async function editLesson(id) {
+  const res = await fetch(API + '/lessons/' + id);
+  const lesson = await res.json();
+  editingLessonId = id;
+
+  const parts = lesson.pbn.split(':')[1].split(' ');
+  document.getElementById('hand-N').value = parts[0];
+  document.getElementById('hand-E').value = parts[1];
+  document.getElementById('hand-S').value = parts[2];
+  document.getElementById('hand-W').value = parts[3];
+  document.getElementById('title').value = lesson.title;
+  document.getElementById('technique').value = lesson.technique || '';
+  document.getElementById('explanation').value = lesson.explanation || '';
+  document.getElementById('contract').value = lesson.contract;
+  document.getElementById('declarer').value = lesson.declarer;
+  document.getElementById('lead').value = lesson.lead;
+
+  document.getElementById('create-page-title').textContent = 'Edit Lesson';
+  document.getElementById('save-lesson-btn').textContent = '💾 Update Lesson';
+  showPage('create');
+}
+
+function newLesson() {
+  editingLessonId = null;
+  document.getElementById('create-page-title').textContent = 'Create New Lesson';
+  document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
+  showPage('create');
+}
+
+function loadSampleHand() {
+  // Classic 4 Spades hand - needs trump drawing and finesse
+  document.getElementById('hand-N').value = 'QJ6.K652.J85.T98';
+  document.getElementById('hand-E').value = '873.J97.AT764.Q4';
+  document.getElementById('hand-S').value = 'AK95.43.KQ2.7652';
+  document.getElementById('hand-W').value = 'T42.AQT8.93.AKJ3';
+  document.getElementById('contract').value = '4S';
+  document.getElementById('declarer').value = 'S';
+  document.getElementById('lead').value = 'HA';
+  document.getElementById('title').value = 'Sample: 4 Spades — Draw Trumps First?';
+  document.getElementById('technique').value = 'Trump management';
+  document.getElementById('explanation').value =
+    'The robot will defend perfectly using double-dummy analysis. Can you make 4 Spades against best defence?';
+  toast('Sample hand loaded!');
+}
+
+// ═══════════════════════════════════════════════════════
+//  OPEN LESSON → STUDENT NAME → START GAME
+// ═══════════════════════════════════════════════════════
+
+async function openLesson(id) {
+  const res = await fetch(API + '/lessons/' + id);
+  state.lesson = await res.json();
+  document.getElementById('student-form').classList.add('show');
+  document.getElementById('student-name').focus();
+}
+
+function startGame() {
+  const name = document.getElementById('student-name').value.trim();
+  if (!name) return toast('Please enter your name');
+  state.studentName = name;
+  document.getElementById('student-form').classList.remove('show');
+  initGame(state.lesson);
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME INITIALISATION
+// ═══════════════════════════════════════════════════════
+
+function initGame(lesson) {
+  showPage('game');
+
+  // Parse PBN: "N:N_hand E_hand S_hand W_hand"
+  const pbn = lesson.pbn;
+  const parts = pbn.split(':')[1].split(' ');
+  const rawHands = { N: parts[0], E: parts[1], S: parts[2], W: parts[3] };
+
+  // Parse each hand into array of card strings
+  function parseHand(str) {
+    const suits = str.split('.');
+    const suitChars = ['S','H','D','C'];
+    const cards = [];
+    suits.forEach((suitStr, i) => {
+      for (const rank of suitStr) {
+        cards.push(suitChars[i] + rank);
+      }
+    });
+    return cards;
+  }
+
+  state.hands = {
+    N: parseHand(rawHands.N),
+    E: parseHand(rawHands.E),
+    S: parseHand(rawHands.S),
+    W: parseHand(rawHands.W)
+  };
+  state.originalHands = JSON.parse(JSON.stringify(state.hands));
+
+  state.contract = lesson.contract;
+  state.contractLevel = parseInt(lesson.contract[0]);
+  state.target = state.contractLevel + 6;
+  state.trump = lesson.contract[1]; // S/H/D/C/N
+  state.declarer = lesson.declarer;
+  state.dummy = { N:'S', S:'N', E:'W', W:'E' }[lesson.declarer];
+  state.nsTricks = 0;
+  state.ewTricks = 0;
+  state.allPlayedCards = [];
+  state.currentTrick = [];
+  state.gameOver = false;
+  state.playSequence = [];
+
+  // Who leads? Person to the LEFT of declarer (clockwise)
+  const leftOf = { N:'E', E:'S', S:'W', W:'N' };
+  state.trickLeader = leftOf[lesson.declarer];
+
+  // Set the opening lead (already known from lesson)
+  const leadCard = lesson.lead.toUpperCase();
+  state.currentTrick = [{ player: state.trickLeader, card: leadCard }];
+  // Remove lead card from hand
+  removeCard(state.trickLeader, leadCard);
+  state.allPlayedCards.push({ player: state.trickLeader, card: leadCard });
+  state.playSequence.push(leadCard);
+
+  // Update UI
+  document.getElementById('game-title').textContent = lesson.title;
+  document.getElementById('game-subtitle').textContent =
+    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer] +
+    ' — Lead: ' + formatCard(leadCard);
+
+  if (lesson.explanation) {
+    document.getElementById('explanation-panel').style.display = 'block';
+    document.getElementById('explanation-text').textContent = ' ' + lesson.explanation;
+  } else {
+    document.getElementById('explanation-panel').style.display = 'none';
+  }
+
+  // Label the seats
+  PLAYERS.forEach(p => {
+    const label = document.getElementById(p + '-label');
+    label.textContent = PLAYER_NAMES[p];
+    label.className = 'hand-label';
+    if (p === state.declarer) label.className += ' declarer-label';
+    if (p === state.dummy) label.className += ' dummy-label';
+  });
+
+  renderTable();
+  updateTricksDisplay();
+
+  // After rendering, we need to continue: who plays next after the lead?
+  // After West leads, next is North (dummy plays if dummy, or North if North is next)
+  setTimeout(() => continueAfterLead(), 300);
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════════
+
+function removeCard(player, cardStr) {
+  state.hands[player] = state.hands[player].filter(c => c !== cardStr);
+}
+
+function isDeclarerOrDummy(player) {
+  return player === state.declarer || player === state.dummy;
+}
+
+function isDefender(player) {
+  return !isDeclarerOrDummy(player);
+}
+
+async function continueAfterLead() {
+  // Determine who plays next in the trick
+  const playedInTrick = state.currentTrick.length;
+  const leader = state.trickLeader;
+  const order = getPlayOrder(leader);
+  
+  if (playedInTrick < 4) {
+    const nextPlayer = order[playedInTrick];
+    await handleNextPlay(nextPlayer);
+  } else {
+    await completeTrick();
+  }
+}
+
+function getPlayOrder(leader) {
+  // Returns [leader, next, next, next] clockwise
+  const clockwise = ['N','E','S','W'];
+  const start = clockwise.indexOf(leader);
+  return [0,1,2,3].map(i => clockwise[(start + i) % 4]);
+}
+
+async function handleNextPlay(player) {
+  renderTable();
+  updateTricksDisplay();
+  
+  if (isDeclarerOrDummy(player)) {
+    // Human plays (declarer or dummy)
+    // Declarer controls both their hand and dummy
+    enablePlayerCards(player);
+    document.getElementById('turn-indicator').textContent =
+      'Your turn — ' + PLAYER_NAMES[player];
+  } else {
+    // Robot defends using DDS
+    document.getElementById('turn-indicator').textContent =
+      PLAYER_NAMES[player] + ' thinking...';
+    disableAllCards();
+    await delay(600);
+    const card = await getDDSBestCard(player);
+    await playCard(player, card, false);
+  }
+}
+
+async function getDDSBestCard(player) {
+  // Build remaining hands to send to backend
+  const remaining = {};
+  PLAYERS.forEach(p => { remaining[p] = state.hands[p]; });
+
+  // If there are cards in current trick, we need to account for them
+  // Remove current trick cards from remaining (already removed from state.hands)
+  
+  try {
+    const res = await fetch(API + '/dds/next_move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trump: state.trump,
+        next_player: player,
+        current_trick: state.currentTrick,
+        remaining_hands: remaining
+      })
+    });
+    const data = await res.json();
+    return data.best_card;
+  } catch(e) {
+    // Fallback: play first legal card
+    const hand = state.hands[player];
+    const leadSuit = state.currentTrick.length > 0 ? state.currentTrick[0].card[0] : null;
+    if (leadSuit) {
+      const followable = hand.filter(c => c[0] === leadSuit);
+      if (followable.length > 0) return followable[0];
+    }
+    return hand[0];
+  }
+}
+
+function enablePlayerCards(player) {
+  disableAllCards();
+  
+  const leadSuit = state.currentTrick.length > 0 ? state.currentTrick[0].card[0] : null;
+  const hand = state.hands[player];
+  
+  // Must follow suit if possible
+  const mustFollow = leadSuit && hand.some(c => c[0] === leadSuit);
+  
+  const container = document.getElementById('hand-' + player + '-cards');
+  container.querySelectorAll('.card').forEach(el => {
+    const cardStr = el.dataset.card;
+    const canPlay = !mustFollow || cardStr[0] === leadSuit;
+    if (canPlay) {
+      el.classList.add('playable');
+      el.onclick = () => humanPlaysCard(player, cardStr);
+    }
+  });
+}
+
+function disableAllCards() {
+  document.querySelectorAll('.card').forEach(el => {
+    el.classList.remove('playable');
+    el.onclick = null;
+  });
+}
+
+async function humanPlaysCard(player, card) {
+  disableAllCards();
+  await playCard(player, card, true);
+}
+
+async function playCard(player, card, isHuman) {
+  // Animate
+  removeCard(player, card);
+  state.currentTrick.push({ player, card });
+  state.allPlayedCards.push({ player, card });
+  state.playSequence.push(card);
+  
+  renderTable();
+
+  if (state.currentTrick.length < 4) {
+    // More players to play in this trick
+    const order = getPlayOrder(state.trickLeader);
+    const nextPlayer = order[state.currentTrick.length];
+    await delay(400);
+    await handleNextPlay(nextPlayer);
+  } else {
+    await delay(600);
+    await completeTrick();
+  }
+}
+
+async function completeTrick() {
+  // Determine winner
+  const winner = getTrickWinner(state.currentTrick, state.trump);
+  
+  // Award trick
+  if (winner === 'N' || winner === 'S') {
+    state.nsTricks++;
+  } else {
+    state.ewTricks++;
+  }
+
+  // Flash winning card
+  document.getElementById('trick-' + winner).querySelector('.trick-card')?.classList.add('winning');
+  
+  await delay(1000);
+
+  // Clear trick area
+  state.currentTrick = [];
+  state.trickLeader = winner;
+
+  // Check if game over (13 tricks played)
+  const totalTricks = state.nsTricks + state.ewTricks;
+  if (totalTricks >= 13) {
+    await finishGame();
+    return;
+  }
+
+  renderTable();
+  updateTricksDisplay();
+  await delay(300);
+  
+  // Winner leads next trick
+  await handleNextPlay(winner);
+}
+
+function getTrickWinner(trick, trump) {
+  const leadSuit = trick[0].card[0];
+  let winner = trick[0];
+  
+  for (let i = 1; i < trick.length; i++) {
+    const c = trick[i];
+    if (beats(c.card, winner.card, leadSuit, trump)) {
+      winner = c;
+    }
+  }
+  return winner.player;
+}
+
+function beats(card, against, leadSuit, trump) {
+  const cardSuit = card[0];
+  const againstSuit = against[0];
+  
+  // Trump beats non-trump
+  if (trump !== 'N') {
+    if (cardSuit === trump && againstSuit !== trump) return true;
+    if (cardSuit !== trump && againstSuit === trump) return false;
+  }
+  
+  // Must be same suit to beat
+  if (cardSuit !== againstSuit) return false;
+  
+  return RANK_ORDER.indexOf(card[1]) < RANK_ORDER.indexOf(against[1]);
+}
+
+async function finishGame() {
+  state.gameOver = true;
+  disableAllCards();
+  
+  // Calculate result
+  const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+  const declarerTricks = declarerIsNS ? state.nsTricks : state.ewTricks;
+  const diff = declarerTricks - state.target;
+  
+  let result, heading;
+  if (diff >= 0) {
+    result = diff > 0 ? `Made +${diff}` : 'Made exactly';
+    heading = diff > 0 ? '🎉 Contract Made!' : '✅ Contract Made!';
+  } else {
+    result = `Down ${Math.abs(diff)}`;
+    heading = `❌ Down ${Math.abs(diff)}`;
+  }
+
+  const score = calculateScore(state.contract, declarerTricks);
+  
+  // Save attempt
+  try {
+    await fetch(API + '/attempts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lesson_id: state.lesson.id,
+        student_name: state.studentName,
+        tricks_made: declarerTricks,
+        contract: state.contract,
+        declarer: state.declarer,
+        result,
+        play_sequence: state.playSequence
+      })
+    });
+  } catch(e) { console.error('Could not save score', e); }
+
+  // Show result
+  const box = document.getElementById('result-box');
+  box.className = 'result-box ' + (diff >= 0 ? 'made' : 'down');
+  document.getElementById('result-heading').textContent = heading;
+  document.getElementById('result-score').textContent =
+    (score > 0 ? '+' : '') + score + ' pts';
+  document.getElementById('result-detail').textContent =
+    declarerTricks + ' tricks made, needed ' + state.target;
+  document.getElementById('result-contract').textContent =
+    formatContract(state.contract) + ' by ' + PLAYER_NAMES[state.declarer];
+  
+  document.getElementById('result-overlay').classList.add('show');
+}
+
+function calculateScore(contract, tricksMade) {
+  const level = parseInt(contract[0]);
+  const suit = contract[1];
+  const target = level + 6;
+  const diff = tricksMade - target;
+  
+  if (diff >= 0) {
+    let baseScore = suit === 'N' ? (40 + level * 30 - 30) :
+                    ['S','H'].includes(suit) ? level * 30 :
+                    level * 20;
+    if (suit === 'N') baseScore = level === 1 ? 40 : 30 + (level-1)*30 + 10;
+    const gameBonus = baseScore >= 100 ? 300 : 50;
+    const slamBonus = level === 7 ? 1000 : (level === 6 ? 500 : 0);
+    const overtricks = diff * (['S','H','N'].includes(suit) ? 30 : 20);
+    return baseScore + gameBonus + slamBonus + overtricks;
+  } else {
+    return 50 * diff; // negative
+  }
+}
+
+function playAgain() {
+  document.getElementById('result-overlay').classList.remove('show');
+  initGame(state.lesson);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════════════════════════
+
+function renderTable() {
+  PLAYERS.forEach(p => {
+    renderHand(p);
+  });
+  renderTrickArea();
+}
+
+function renderHand(player) {
+  const container = document.getElementById('hand-' + player + '-cards');
+  const cards = state.hands[player];
+  const isDummy = player === state.dummy;
+  const isDefenderHand = isDefender(player);
+  
+  // Sort cards: by suit then rank
+  const sorted = [...cards].sort((a, b) => {
+    const suitOrder = ['S','H','D','C'];
+    const sDiff = suitOrder.indexOf(a[0]) - suitOrder.indexOf(b[0]);
+    if (sDiff !== 0) return sDiff;
+    return RANK_ORDER.indexOf(a[1]) - RANK_ORDER.indexOf(b[1]);
+  });
+
+  // Defenders' cards: face down during play (but we show them for learning)
+  // In a real game you'd hide them, but for teaching we show all
+  const showFaceUp = true; // Always show for teaching purposes
+
+  const isSideHand = (player === 'E' || player === 'W');
+
+  container.innerHTML = sorted.map(card => {
+    const suit = card[0];
+    const rank = card[1];
+    const suitName = SUIT_NAMES[suit];
+    const suitSym = SUIT_SYMBOLS[suit];
+    if (isDefenderHand) {
+      return `<div class="card face-down${isSideHand ? ' side' : ''}" data-card="${card}"></div>`;
+    }
+    return `<div class="card ${suitName}" data-card="${card}">
+      <span class="card-rank">${rank}</span>
+      <span class="card-suit">${suitSym}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTrickArea() {
+  PLAYERS.forEach(p => {
+    const slot = document.getElementById('trick-' + p);
+    const played = state.currentTrick.find(t => t.player === p);
+    if (played) {
+      const suit = played.card[0];
+      const rank = played.card[1];
+      slot.innerHTML = `<div class="trick-card ${SUIT_NAMES[suit]}">
+        ${rank}${SUIT_SYMBOLS[suit]}
+      </div>`;
+    } else {
+      slot.innerHTML = '';
+    }
+  });
+}
+
+function updateTricksDisplay() {
+  const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+  const declarerTricks = declarerIsNS ? state.nsTricks : state.ewTricks;
+  
+  document.getElementById('tricks-display').textContent =
+    declarerTricks + ' / ' + state.target;
+  document.getElementById('ns-tricks').textContent = state.nsTricks;
+  document.getElementById('ew-tricks').textContent = state.ewTricks;
+}
+
+function formatCard(cardStr) {
+  return SUIT_SYMBOLS[cardStr[0]] + cardStr[1];
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCORES
+// ═══════════════════════════════════════════════════════
+
+async function loadScores() {
+  const lessonId = document.getElementById('score-filter').value;
+  let url = lessonId
+    ? API + '/attempts/lesson/' + lessonId
+    : API + '/attempts/lesson/0'; // we'll need all
+
+  // Fetch all lessons and gather attempts
+  let attempts = [];
+  if (lessonId) {
+    const res = await fetch(API + '/attempts/lesson/' + lessonId);
+    attempts = await res.json();
+  } else {
+    // Get all lessons then all their attempts
+    const lesRes = await fetch(API + '/lessons');
+    const lessons = await lesRes.json();
+    for (const l of lessons) {
+      const aRes = await fetch(API + '/attempts/lesson/' + l.id);
+      const a = await aRes.json();
+      attempts = attempts.concat(a.map(x => ({ ...x, lesson_title: l.title })));
+    }
+    attempts.sort((a,b) => new Date(b.played_at) - new Date(a.played_at));
+  }
+
+  const container = document.getElementById('scores-container');
+  if (!attempts.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📊</div>
+      <p>No scores recorded yet.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<table class="scores-table">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Lesson</th>
+        <th>Result</th>
+        <th>Tricks</th>
+        <th>Score</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${attempts.map(a => `
+        <tr>
+          <td>${escHtml(a.student_name)}</td>
+          <td>${escHtml(a.lesson_title || a.title || '—')}</td>
+          <td class="${a.result.includes('Made') ? 'result-made' : 'result-down'}">
+            ${escHtml(a.result)}
+          </td>
+          <td>${a.tricks_made}</td>
+          <td>${a.score > 0 ? '+' : ''}${a.score}</td>
+          <td>${new Date(a.played_at).toLocaleDateString()}</td>
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// Enter key on student name
+document.getElementById('student-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGame();
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+loadLessons();
+</script>
+</body>
+</html>
