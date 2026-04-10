@@ -221,26 +221,48 @@
   .form-row select option { background: #1a3a25; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-  .hand-input-grid {
+  .bridge-table-input {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-areas:
+      ". north ."
+      "west . east"
+      ". south .";
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 8px 12px;
     margin-top: 8px;
   }
-  .hand-input { }
-  .hand-input label {
+  .hand-block { display: flex; flex-direction: column; gap: 5px; }
+  .hand-block.north { grid-area: north; align-items: center; }
+  .hand-block.south { grid-area: south; align-items: center; }
+  .hand-block.west  { grid-area: west;  justify-self: start; align-items: flex-start; }
+  .hand-block.east  { grid-area: east;  justify-self: end;   align-items: flex-end; }
+  .hand-block-label {
     font-size: 0.8rem;
-    color: rgba(245,240,232,0.7);
-    display: block;
-    margin-bottom: 4px;
-    text-transform: none;
-    letter-spacing: 0;
+    font-weight: 600;
+    color: rgba(245,240,232,0.8);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-  .hand-hint {
-    font-size: 0.75rem;
-    color: rgba(245,240,232,0.4);
-    margin-top: 6px;
-    font-style: italic;
+  .suit-row { display: flex; align-items: center; gap: 5px; }
+  .hand-block.east .suit-row { flex-direction: row-reverse; }
+  .suit-sym { font-size: 0.9rem; line-height: 1; }
+  .suit-sym.red { color: #e05252; }
+  .hand-block input {
+    width: 100px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #f5f0e8;
+    font-size: 0.85rem;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+  }
+  .hand-block input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.12);
   }
 
   .btn {
@@ -674,28 +696,39 @@
     <div class="form-row">
       <label>Enter the 4 Hands
         <span style="font-weight:300; font-size:0.75rem; text-transform:none; margin-left:8px;">
-          (Spades.Hearts.Diamonds.Clubs — use T for Ten)
+          (use T for Ten — leave blank for a void suit)
         </span>
       </label>
-      <div class="hand-input-grid">
-        <div class="hand-input">
-          <label>♠ North</label>
-          <input type="text" id="hand-N" placeholder="AKQ.JT9.432.876" />
+      <div class="bridge-table-input">
+        <div class="hand-block north">
+          <div class="hand-block-label">North</div>
+          <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-N-S" placeholder="e.g. AKQ" /></div>
+          <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-N-H" placeholder="e.g. JT9" /></div>
+          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-N-D" placeholder="e.g. 432" /></div>
+          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-N-C" placeholder="e.g. 876" /></div>
         </div>
-        <div class="hand-input">
-          <label>♠ East</label>
-          <input type="text" id="hand-E" placeholder="JT9.876.AKQ.432" />
+        <div class="hand-block west">
+          <div class="hand-block-label">West</div>
+          <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-W-S" placeholder="e.g. 432" /></div>
+          <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-W-H" placeholder="e.g. AQ8" /></div>
+          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-W-D" placeholder="e.g. 93" /></div>
+          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-W-C" placeholder="e.g. AKJ3" /></div>
         </div>
-        <div class="hand-input">
-          <label>♠ South</label>
-          <input type="text" id="hand-S" placeholder="876.AKQ.JT9.432" />
+        <div class="hand-block east">
+          <div class="hand-block-label">East</div>
+          <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-E-S" placeholder="e.g. 873" /></div>
+          <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-E-H" placeholder="e.g. J97" /></div>
+          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-E-D" placeholder="e.g. AT7" /></div>
+          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-E-C" placeholder="e.g. Q4" /></div>
         </div>
-        <div class="hand-input">
-          <label>♠ West</label>
-          <input type="text" id="hand-W" placeholder="432.432.876.AKQJT" />
+        <div class="hand-block south">
+          <div class="hand-block-label">South</div>
+          <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-S-S" placeholder="e.g. AK95" /></div>
+          <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-S-H" placeholder="e.g. 43" /></div>
+          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-S-D" placeholder="e.g. KQ2" /></div>
+          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-S-C" placeholder="e.g. 7652" /></div>
         </div>
       </div>
-      <p class="hand-hint">Example: AKQ.JT98.76.KJ32 means ♠AKQ ♥JT98 ♦76 ♣KJ32</p>
     </div>
 
     <div class="form-grid">
@@ -1007,14 +1040,40 @@ function formatContract(c) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  HAND HELPERS
+// ═══════════════════════════════════════════════════════
+
+function getHand(p) {
+  const s = document.getElementById(`hand-${p}-S`).value.trim().toUpperCase() || '-';
+  const h = document.getElementById(`hand-${p}-H`).value.trim().toUpperCase() || '-';
+  const d = document.getElementById(`hand-${p}-D`).value.trim().toUpperCase() || '-';
+  const c = document.getElementById(`hand-${p}-C`).value.trim().toUpperCase() || '-';
+  return `${s}.${h}.${d}.${c}`;
+}
+
+function setHand(p, pbnHand) {
+  const suits = pbnHand.split('.');
+  ['S','H','D','C'].forEach((suit, i) => {
+    document.getElementById(`hand-${p}-${suit}`).value = (suits[i] === '-' ? '' : suits[i]) || '';
+  });
+}
+
+const HAND_INPUT_IDS = [
+  'hand-N-S','hand-N-H','hand-N-D','hand-N-C',
+  'hand-E-S','hand-E-H','hand-E-D','hand-E-C',
+  'hand-S-S','hand-S-H','hand-S-D','hand-S-C',
+  'hand-W-S','hand-W-H','hand-W-D','hand-W-C',
+];
+
+// ═══════════════════════════════════════════════════════
 //  CREATE LESSON
 // ═══════════════════════════════════════════════════════
 
 async function createLesson() {
-  const N = document.getElementById('hand-N').value.trim().toUpperCase();
-  const E = document.getElementById('hand-E').value.trim().toUpperCase();
-  const S = document.getElementById('hand-S').value.trim().toUpperCase();
-  const W = document.getElementById('hand-W').value.trim().toUpperCase();
+  const N = getHand('N');
+  const E = getHand('E');
+  const S = getHand('S');
+  const W = getHand('W');
   const title = document.getElementById('title').value.trim();
   const contract = document.getElementById('contract').value;
   const declarer = document.getElementById('declarer').value;
@@ -1022,7 +1081,8 @@ async function createLesson() {
   const technique = document.getElementById('technique').value.trim();
   const explanation = document.getElementById('explanation').value.trim();
 
-  if (!N || !E || !S || !W) return toast('Please enter all 4 hands');
+  const hasCards = h => h.replace(/[.\-]/g, '').length > 0;
+  if (!hasCards(N) || !hasCards(E) || !hasCards(S) || !hasCards(W)) return toast('Please enter all 4 hands');
   if (!title) return toast('Please enter a title');
   if (!lead || lead.length < 2) return toast('Please enter the opening lead (e.g. SA)');
 
@@ -1042,7 +1102,7 @@ async function createLesson() {
     const data = await res.json();
     toast(isEdit ? '✅ Lesson updated!' : '✅ Lesson saved! DDS par: ' + data.par_tricks + ' tricks');
     editingLessonId = null;
-    ['title','topic','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
+    ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
       .forEach(id => document.getElementById(id).value = '');
     showPage('lessons');
   } catch(e) {
@@ -1056,10 +1116,10 @@ async function editLesson(id) {
   editingLessonId = id;
 
   const parts = lesson.pbn.split(':')[1].split(' ');
-  document.getElementById('hand-N').value = parts[0];
-  document.getElementById('hand-E').value = parts[1];
-  document.getElementById('hand-S').value = parts[2];
-  document.getElementById('hand-W').value = parts[3];
+  setHand('N', parts[0]);
+  setHand('E', parts[1]);
+  setHand('S', parts[2]);
+  setHand('W', parts[3]);
   document.getElementById('title').value = lesson.title;
   document.getElementById('topic').value = lesson.topic || '';
   document.getElementById('technique').value = lesson.technique || '';
@@ -1077,7 +1137,7 @@ function newLesson() {
   editingLessonId = null;
   document.getElementById('create-page-title').textContent = 'Create New Lesson';
   document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
-  ['title','topic','technique','explanation','hand-N','hand-E','hand-S','hand-W','lead']
+  ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
     .forEach(id => document.getElementById(id).value = '');
   showPage('create');
 }
@@ -1089,10 +1149,10 @@ function toggleTopic(header) {
 
 function loadSampleHand() {
   // Classic 4 Spades hand - needs trump drawing and finesse
-  document.getElementById('hand-N').value = 'QJ6.K652.J85.T98';
-  document.getElementById('hand-E').value = '873.J97.AT764.Q4';
-  document.getElementById('hand-S').value = 'AK95.43.KQ2.7652';
-  document.getElementById('hand-W').value = 'T42.AQT8.93.AKJ3';
+  setHand('N', 'QJ6.K652.J85.T98');
+  setHand('E', '873.J97.AT764.Q4');
+  setHand('S', 'AK95.43.KQ2.7652');
+  setHand('W', 'T42.AQT8.93.AKJ3');
   document.getElementById('contract').value = '4S';
   document.getElementById('declarer').value = 'S';
   document.getElementById('lead').value = 'HA';
