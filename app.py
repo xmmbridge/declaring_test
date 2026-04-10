@@ -120,7 +120,7 @@ def health():
 @app.route('/api/lessons', methods=['GET'])
 def get_lessons():
     conn = get_db()
-    rows = conn.execute('SELECT * FROM lessons ORDER BY created_at DESC').fetchall()
+    rows = conn.execute('SELECT * FROM lessons ORDER BY title COLLATE NOCASE ASC').fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
