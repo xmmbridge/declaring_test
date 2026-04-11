@@ -494,6 +494,27 @@ def get_all_attempts():
 
 init_db()
 
+# Bootstrap first teacher account from environment variables.
+# Set BOOTSTRAP_USER and BOOTSTRAP_PASS in Railway dashboard.
+# Account is created once on startup; remove the vars afterwards.
+_bu = os.environ.get('BOOTSTRAP_USER', '').strip()
+_bp = os.environ.get('BOOTSTRAP_PASS', '').strip()
+if _bu and _bp:
+    try:
+        conn = get_db()
+        exists = conn.execute('SELECT 1 FROM users WHERE username=?', (_bu,)).fetchone()
+        if not exists:
+            conn.execute(
+                'INSERT INTO users (username, password_hash, role) VALUES (?,?,?)',
+                (_bu, generate_password_hash(_bp), 'teacher'))
+            conn.commit()
+            print(f'  Bootstrap: teacher account "{_bu}" created.')
+        else:
+            print(f'  Bootstrap: account "{_bu}" already exists, skipping.')
+        conn.close()
+    except Exception as e:
+        print(f'  Bootstrap error: {e}')
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f'\n{"="*50}')
