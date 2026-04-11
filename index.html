@@ -20,8 +20,8 @@
     --card-bg: #fefefe;
     --spades: #1a1a1a;
     --hearts: #cc2200;
-    --diamonds: #cc2200;
-    --clubs: #1a1a1a;
+    --diamonds: #e07820;
+    --clubs: #888888;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -247,7 +247,9 @@
   .suit-row { display: flex; align-items: center; gap: 5px; }
   .hand-block.east .suit-row { flex-direction: row-reverse; }
   .suit-sym { font-size: 0.9rem; line-height: 1; }
-  .suit-sym.red { color: #e05252; }
+  .suit-sym.red    { color: #e05252; }
+  .suit-sym.orange { color: #e07820; }
+  .suit-sym.grey   { color: #aaaaaa; }
   .hand-block input {
     width: 100px;
     background: rgba(255,255,255,0.08);
@@ -640,10 +642,10 @@
   .empty-state p { font-size: 1rem; }
 
   /* suit colors inline */
-  .s { color: #aaa; }
+  .s { color: #cccccc; }
   .h { color: #ff6666; }
-  .d { color: #ff6666; }
-  .c { color: #aaa; }
+  .d { color: #e07820; }
+  .c { color: #aaaaaa; }
 </style>
 </head>
 <body>
@@ -704,29 +706,29 @@
           <div class="hand-block-label">North</div>
           <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-N-S" placeholder="e.g. AKQ" /></div>
           <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-N-H" placeholder="e.g. JT9" /></div>
-          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-N-D" placeholder="e.g. 432" /></div>
-          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-N-C" placeholder="e.g. 876" /></div>
+          <div class="suit-row"><span class="suit-sym orange">♦</span><input type="text" id="hand-N-D" placeholder="e.g. 432" /></div>
+          <div class="suit-row"><span class="suit-sym grey">♣</span><input type="text" id="hand-N-C" placeholder="e.g. 876" /></div>
         </div>
         <div class="hand-block west">
           <div class="hand-block-label">West</div>
           <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-W-S" placeholder="e.g. 432" /></div>
           <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-W-H" placeholder="e.g. AQ8" /></div>
-          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-W-D" placeholder="e.g. 93" /></div>
-          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-W-C" placeholder="e.g. AKJ3" /></div>
+          <div class="suit-row"><span class="suit-sym orange">♦</span><input type="text" id="hand-W-D" placeholder="e.g. 93" /></div>
+          <div class="suit-row"><span class="suit-sym grey">♣</span><input type="text" id="hand-W-C" placeholder="e.g. AKJ3" /></div>
         </div>
         <div class="hand-block east">
           <div class="hand-block-label">East</div>
           <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-E-S" placeholder="e.g. 873" /></div>
           <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-E-H" placeholder="e.g. J97" /></div>
-          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-E-D" placeholder="e.g. AT7" /></div>
-          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-E-C" placeholder="e.g. Q4" /></div>
+          <div class="suit-row"><span class="suit-sym orange">♦</span><input type="text" id="hand-E-D" placeholder="e.g. AT7" /></div>
+          <div class="suit-row"><span class="suit-sym grey">♣</span><input type="text" id="hand-E-C" placeholder="e.g. Q4" /></div>
         </div>
         <div class="hand-block south">
           <div class="hand-block-label">South</div>
           <div class="suit-row"><span class="suit-sym">♠</span><input type="text" id="hand-S-S" placeholder="e.g. AK95" /></div>
           <div class="suit-row"><span class="suit-sym red">♥</span><input type="text" id="hand-S-H" placeholder="e.g. 43" /></div>
-          <div class="suit-row"><span class="suit-sym red">♦</span><input type="text" id="hand-S-D" placeholder="e.g. KQ2" /></div>
-          <div class="suit-row"><span class="suit-sym">♣</span><input type="text" id="hand-S-C" placeholder="e.g. 7652" /></div>
+          <div class="suit-row"><span class="suit-sym orange">♦</span><input type="text" id="hand-S-D" placeholder="e.g. KQ2" /></div>
+          <div class="suit-row"><span class="suit-sym grey">♣</span><input type="text" id="hand-S-C" placeholder="e.g. 7652" /></div>
         </div>
       </div>
     </div>
@@ -1571,9 +1573,13 @@ function renderHand(player) {
   const isDummy = player === state.dummy;
   const isDefenderHand = isDefender(player);
   
-  // Sort cards: by suit then rank
+  // Sort cards: trump suit leftmost, then S→H→D→C, then rank
+  const base = ['S','H','D','C'];
+  const trump = state.trump;
+  const suitOrder = (trump && trump !== 'N')
+    ? [trump, ...base.filter(s => s !== trump)]
+    : base;
   const sorted = [...cards].sort((a, b) => {
-    const suitOrder = ['S','H','D','C'];
     const sDiff = suitOrder.indexOf(a[0]) - suitOrder.indexOf(b[0]);
     if (sDiff !== 0) return sDiff;
     return RANK_ORDER.indexOf(a[1]) - RANK_ORDER.indexOf(b[1]);
