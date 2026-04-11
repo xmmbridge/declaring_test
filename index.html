@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Declaring Test</title>
+<title>Bad Manners 3000 (BM3K)</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap');
 
@@ -651,7 +651,7 @@
 <body>
 
 <header>
-  <h1>Declaring <span>Test</span></h1>
+  <h1>Bad Manners <span>3000</span> <small style="font-size:0.45em;opacity:0.5;font-weight:300;letter-spacing:0.05em;">AKA BM3K</small></h1>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('lessons')">📚 Lessons</button>
     <button class="nav-tab" onclick="newLesson()">➕ Create Lesson</button>
@@ -901,6 +901,7 @@
     <div class="score-big" id="result-score">—</div>
     <p id="result-detail">—</p>
     <p id="result-contract">—</p>
+    <p id="result-quip" style="font-style:italic; color:rgba(245,240,232,0.6); margin-top:12px; font-size:0.95rem;">—</p>
     <div class="result-buttons">
       <button class="btn btn-secondary" onclick="playAgain()">▶ Play Again</button>
       <button class="btn btn-primary" onclick="document.getElementById('result-overlay').classList.remove('show'); showPage('lessons')">← Lessons</button>
@@ -919,6 +920,52 @@
 // ═══════════════════════════════════════════════════════
 
 const API = '/api';
+
+const QUIPS_MADE = [
+  "Made it. Even the robot was briefly impressed — then it moved on.",
+  "Well played. The dummy certainly pulled its weight.",
+  "Contract made! Don't worry, we won't look at the play too closely.",
+  "Nicely done. A stopped clock is right twice a day, after all.",
+  "Made it! The cards were basically begging to be played correctly.",
+  "Bravo. The opponents' defence was, how shall we say... educational for them.",
+  "You got there. A road with no turning is still a road.",
+  "Contract made. A monkey with a calculator would be proud of you.",
+  "Congratulations. The double dummy solver had you making this, so really — minimum expectations met.",
+  "Made it. Perhaps not the intended line, but the destination is the same.",
+  "Well done. The cards cooperated magnificently, as usual.",
+  "Contract made! We'll attribute that to skill and move swiftly past the evidence.",
+  "Splendid. Even a beginner gets lucky sometimes.",
+  "You scraped home. The important thing is nobody saw the middle bit.",
+  "Made it! The robot clearly underestimated you. Once.",
+  "Contract made. Your partner would be proud — assuming they didn't watch.",
+  "Well navigated. Though with that hand, most people would have made an overtrick.",
+  "Congratulations. The bar was on the floor and you cleared it handsomely.",
+  "Made it! Try not to let it go to your head. There's another hand to ruin yet.",
+  "Good result. We'll call it controlled chaos and leave it at that.",
+];
+
+const QUIPS_DOWN = [
+  "Down. The robot sends its condolences. And its pity.",
+  "The cards didn't beat you. You beat you.",
+  "That line of play has a name: creative. Not a compliment.",
+  "The double dummy solver had you making this. A moment of silence.",
+  "Bold. Wrong, but mostly bold.",
+  "Congratulations on finding the one losing line in a sea of winners.",
+  "Some declarers are born great. Others build character through suffering.",
+  "Even the robot felt bad. Then it remembered it has no feelings.",
+  "The opening lead was not actually the problem here.",
+  "Not to worry. Hubris is a very human quality.",
+  "That was a fascinating approach. Fascinating in the way a car crash is fascinating.",
+  "The dummy is not legally allowed to comment. Lucky for you.",
+  "The robot has played a million hands and has never seen that line. It's making notes.",
+  "Down. Don't worry, the robot won't tell anyone. It will simply remember. Forever.",
+  "In bridge, we call that a learning experience. You're learning a lot today.",
+  "That play will haunt the robot's training data for years. Congratulations on your legacy.",
+  "Down. The cards were not kind. Your choices, however, were unkind to yourself.",
+  "The robot defended perfectly. You did not play perfectly. Spot the difference.",
+  "It was always makeable. The evidence suggests you didn't get that memo.",
+  "Somewhere, a bridge teacher is crying and they don't know why.",
+];
 
 const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const SUIT_NAMES   = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
@@ -1528,6 +1575,10 @@ async function finishGame() {
   document.getElementById('result-contract').textContent =
     formatContract(state.contract) + ' by ' + PLAYER_NAMES[state.declarer];
   
+  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
+  document.getElementById('result-quip').textContent =
+    quipList[Math.floor(Math.random() * quipList.length)];
+
   document.getElementById('result-overlay').classList.add('show');
 }
 
