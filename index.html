@@ -1026,8 +1026,8 @@
 //  CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════
 
-const API = '/api';
-let appUser = null; // set by checkAuth() on load
+const API  = '/api';
+const AUTH = '/auth';
 
 const QUIPS_MADE = [
   "Made it. Even the robot was briefly impressed — then it moved on.",
@@ -1914,7 +1914,7 @@ document.getElementById('student-name').addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════════════
 
 async function checkAuth() {
-  const res = await fetch(API + '/auth/me');
+  const res = await fetch(AUTH + '/me');
   appUser = await res.json();
   updateAuthUI();
 }
@@ -1953,7 +1953,7 @@ async function doLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
   document.getElementById('login-error').textContent = '';
-  const res = await fetch(API + '/auth/login', {
+  const res = await fetch(AUTH + '/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
@@ -1970,7 +1970,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  await fetch(API + '/auth/logout', { method: 'POST' });
+  await fetch(AUTH + '/logout', { method: 'POST' });
   appUser = null;
   updateAuthUI();
   showPage('lessons');
