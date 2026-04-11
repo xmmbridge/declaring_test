@@ -502,15 +502,17 @@ _bp = os.environ.get('BOOTSTRAP_PASS', '').strip()
 if _bu and _bp:
     try:
         conn = get_db()
-        exists = conn.execute('SELECT 1 FROM users WHERE username=?', (_bu,)).fetchone()
-        if not exists:
-            conn.execute(
-                'INSERT INTO users (username, password_hash, role) VALUES (?,?,?)',
-                (_bu, generate_password_hash(_bp), 'teacher'))
-            conn.commit()
-            print(f'  Bootstrap: teacher account "{_bu}" created.')
+        existing = conn.execute('SELECT id FROM users WHERE username=?', (_bu,)).fetchone()
+        hashed = generate_password_hash(_bp)
+        if existing:
+            conn.execute('UPDATE users SET password_hash=?, role=? WHERE username=?',
+                         (hashed, 'teacher', _bu))
+            print(f'  Bootstrap: password updated for teacher "{_bu}".')
         else:
-            print(f'  Bootstrap: account "{_bu}" already exists, skipping.')
+            conn.execute('INSERT INTO users (username, password_hash, role) VALUES (?,?,?)',
+                         (_bu, hashed, 'teacher'))
+            print(f'  Bootstrap: teacher account "{_bu}" created.')
+        conn.commit()
         conn.close()
     except Exception as e:
         print(f'  Bootstrap error: {e}')
