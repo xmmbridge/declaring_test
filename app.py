@@ -200,6 +200,21 @@ def static_files(path):
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/auth/debug')
+def auth_debug():
+    """Temporary: shows whether any users exist and bootstrap vars are present."""
+    conn = get_db()
+    count = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    users = conn.execute('SELECT username, role FROM users').fetchall()
+    conn.close()
+    return jsonify({
+        'db_path': DB_PATH,
+        'user_count': count,
+        'users': [dict(u) for u in users],
+        'bootstrap_user_set': bool(os.environ.get('BOOTSTRAP_USER')),
+        'bootstrap_pass_set': bool(os.environ.get('BOOTSTRAP_PASS')),
+    })
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.route('/auth/login', methods=['POST'])
