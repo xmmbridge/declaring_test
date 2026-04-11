@@ -641,6 +641,51 @@
   .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
   .empty-state p { font-size: 1rem; }
 
+  /* auth */
+  .auth-section { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .auth-user { font-size: 0.85rem; color: rgba(245,240,232,0.7); }
+  .auth-role { font-size: 0.7rem; background: rgba(255,255,255,0.1); border-radius: 8px;
+               padding: 2px 8px; color: rgba(245,240,232,0.5); text-transform: uppercase;
+               letter-spacing: 0.05em; }
+  .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+  /* login modal */
+  .login-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+                   z-index: 200; align-items: center; justify-content: center; }
+  .login-overlay.show { display: flex; }
+  .login-box { background: #1a3a25; border: 1px solid rgba(255,255,255,0.15);
+               border-radius: 12px; padding: 32px; width: 320px; }
+  .login-box h2 { margin: 0 0 20px; font-size: 1.2rem; color: #f5f0e8; text-align: center; }
+  .login-box .form-row { margin-bottom: 14px; }
+  .login-error { color: #ee6666; font-size: 0.85rem; margin-top: 8px; text-align: center;
+                 min-height: 1.2em; }
+
+  /* users page */
+  .users-table { width: 100%; border-collapse: collapse; }
+  .users-table th, .users-table td { padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.9rem; }
+  .users-table th { color: rgba(245,240,232,0.5); font-weight: 500; font-size: 0.78rem;
+                    text-transform: uppercase; letter-spacing: 0.05em; }
+  .role-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem;
+                text-transform: uppercase; letter-spacing: 0.05em; }
+  .role-badge.teacher { background: rgba(136,200,136,0.2); color: #88cc88; }
+  .role-badge.student { background: rgba(136,170,255,0.2); color: #88aaff; }
+  .new-user-form { background: rgba(255,255,255,0.05); border-radius: 8px;
+                   padding: 20px; margin-bottom: 24px; }
+  .new-user-form .form-grid { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; }
+
+  /* topic restricted toggle */
+  .topic-lock { background: none; border: none; cursor: pointer; font-size: 1rem;
+                opacity: 0.5; padding: 2px 6px; border-radius: 4px; transition: opacity .2s; }
+  .topic-lock:hover { opacity: 1; }
+  .topic-lock.locked { opacity: 1; }
+
+  /* LIN copy button */
+  .btn-lin { padding: 3px 8px; font-size: 0.75rem; background: rgba(255,255,255,0.1);
+             border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #f5f0e8;
+             cursor: pointer; }
+  .btn-lin:hover { background: rgba(255,255,255,0.18); }
+
   /* suit colors inline */
   .s { color: #cccccc; }
   .h { color: #ff6666; }
@@ -654,8 +699,12 @@
   <h1>Bad Manners <span>3000</span> <small style="font-size:0.45em;opacity:0.5;font-weight:300;letter-spacing:0.05em;">AKA BM3K</small></h1>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('lessons')">📚 Lessons</button>
-    <button class="nav-tab" onclick="newLesson()">➕ Create Lesson</button>
+    <button class="nav-tab teacher-only" id="tab-create" onclick="newLesson()" style="display:none">➕ Create Lesson</button>
     <button class="nav-tab" onclick="showPage('scores')">📊 Scores</button>
+    <button class="nav-tab teacher-only" id="tab-users" onclick="showPage('users')" style="display:none">👥 Manage Users</button>
+  </div>
+  <div class="auth-section" id="auth-section">
+    <button class="btn btn-secondary btn-sm" onclick="showLogin()">Login</button>
   </div>
 </header>
 
@@ -808,6 +857,64 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════
+     PAGE 5: MANAGE USERS (teacher only)
+══════════════════════════════════════════════════════ -->
+<div class="page" id="users-page">
+  <div class="page-title">Manage Users</div>
+
+  <div class="new-user-form">
+    <div style="font-size:0.85rem; font-weight:600; color:rgba(245,240,232,0.7);
+                text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px;">
+      Create Account
+    </div>
+    <div class="form-grid new-user-form" style="padding:0; background:none;">
+      <div class="form-row" style="margin:0">
+        <label>Username</label>
+        <input type="text" id="new-username" placeholder="e.g. alice" autocomplete="off" />
+      </div>
+      <div class="form-row" style="margin:0">
+        <label>Password</label>
+        <input type="password" id="new-password" placeholder="password" autocomplete="off" />
+      </div>
+      <div class="form-row" style="margin:0">
+        <label>Role</label>
+        <select id="new-role">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="createUser()">➕ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="users-container">
+    <div class="empty-state"><div class="icon">👥</div><p>No users yet.</p></div>
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <h2>🔐 Login</h2>
+    <div class="form-row">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="username" autocomplete="username" />
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="password" autocomplete="current-password" />
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="doLogin()">Login</button>
+    <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="hideLogin()">Cancel</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
      PAGE 4: GAME (Bridge Table)
 ══════════════════════════════════════════════════════ -->
 <div class="page" id="game-page">
@@ -920,6 +1027,7 @@
 // ═══════════════════════════════════════════════════════
 
 const API = '/api';
+let appUser = null; // set by checkAuth() on load
 
 const QUIPS_MADE = [
   "Made it. Even the robot was briefly impressed — then it moved on.",
@@ -1011,7 +1119,8 @@ function showPage(name) {
     document.querySelectorAll('.nav-tab')[tabs[name]].classList.add('active');
 
   if (name === 'lessons') loadLessons();
-  if (name === 'scores') { loadLessons(true); loadScores(); }
+  if (name === 'scores')  { loadLessons(true); loadScores(); }
+  if (name === 'users')   loadUsers();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1019,8 +1128,13 @@ function showPage(name) {
 // ═══════════════════════════════════════════════════════
 
 async function loadLessons(forScores=false) {
-  const res = await fetch(API + '/lessons');
-  const lessons = await res.json();
+  const [lessonsRes, topicsRes] = await Promise.all([
+    fetch(API + '/lessons'),
+    fetch(API + '/topics'),
+  ]);
+  const lessons = await lessonsRes.json();
+  const topicMeta = {};
+  (await topicsRes.json()).forEach(t => { topicMeta[t.name] = t.restricted; });
 
   if (!forScores) {
     const grid = document.getElementById('lesson-grid');
@@ -1048,22 +1162,35 @@ async function loadLessons(forScores=false) {
     const dl = document.getElementById('topic-suggestions');
     dl.innerHTML = topicKeys.filter(t => t).map(t => `<option value="${escHtml(t)}">`).join('');
 
+    const isTeacher = appUser && appUser.role === 'teacher';
+
     const cardHtml = l => `
       <div class="lesson-card" onclick="openLesson(${l.id})">
-        <button class="delete-btn" onclick="event.stopPropagation(); deleteLesson(${l.id})">✕</button>
-        <button class="edit-btn" onclick="event.stopPropagation(); editLesson(${l.id})">✎</button>
+        ${isTeacher ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteLesson(${l.id})">✕</button>
+        <button class="edit-btn" onclick="event.stopPropagation(); editLesson(${l.id})">✎</button>` : ''}
         <h3>${escHtml(l.title)}</h3>
         <div class="contract-badge">${formatContract(l.contract)} by ${PLAYER_NAMES[l.declarer]}</div>
         <div class="technique">${escHtml(l.technique || 'General Practice')}</div>
         <div class="par-info">Target: ${l.contract[0] * 1 + 6} tricks</div>
       </div>`;
 
+    const lockBtn = (topic) => {
+      if (!isTeacher || !topic) return '';
+      const locked = topicMeta[topic] ? true : false;
+      return `<button class="topic-lock ${locked ? 'locked' : ''}"
+        title="${locked ? 'Restricted (click to make general)' : 'General (click to restrict)'}"
+        onclick="event.stopPropagation(); toggleTopicRestricted('${escHtml(topic)}', ${!locked})"
+        >${locked ? '🔒' : '🔓'}</button>`;
+    };
+
     grid.innerHTML = topicKeys.map(topic => `
       <div class="topic-group">
         <div class="topic-header" onclick="toggleTopic(this)">
           <span class="topic-arrow">▾</span>
           ${escHtml(topic || 'Uncategorised')}
+          ${topicMeta[topic] ? '<span style="font-size:0.7rem;opacity:0.6;margin-left:4px;">🔒</span>' : ''}
           <span class="topic-count">${groups[topic].length} lesson${groups[topic].length !== 1 ? 's' : ''}</span>
+          ${lockBtn(topic)}
         </div>
         <div class="topic-body">
           <div class="lesson-grid">${groups[topic].map(cardHtml).join('')}</div>
@@ -1219,8 +1346,14 @@ function loadSampleHand() {
 async function openLesson(id) {
   const res = await fetch(API + '/lessons/' + id);
   state.lesson = await res.json();
-  document.getElementById('student-form').classList.add('show');
-  document.getElementById('student-name').focus();
+  if (appUser) {
+    // logged-in: skip name prompt, use username directly
+    state.studentName = appUser.username;
+    initGame(state.lesson);
+  } else {
+    document.getElementById('student-form').classList.add('show');
+    document.getElementById('student-name').focus();
+  }
 }
 
 function startGame() {
@@ -1547,22 +1680,23 @@ async function finishGame() {
 
   const score = calculateScore(state.contract, declarerTricks);
   
-  // Save attempt
-  try {
-    await fetch(API + '/attempts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lesson_id: state.lesson.id,
-        student_name: state.studentName,
-        tricks_made: declarerTricks,
-        contract: state.contract,
-        declarer: state.declarer,
-        result,
-        play_sequence: state.playSequence
-      })
-    });
-  } catch(e) { console.error('Could not save score', e); }
+  // Save attempt (logged-in users only)
+  if (appUser) {
+    try {
+      await fetch(API + '/attempts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lesson_id: state.lesson.id,
+          tricks_made: declarerTricks,
+          contract: state.contract,
+          declarer: state.declarer,
+          result,
+          play_sequence: state.playSequence
+        })
+      });
+    } catch(e) { console.error('Could not save score', e); }
+  }
 
   // Show result
   const box = document.getElementById('result-box');
@@ -1730,6 +1864,7 @@ async function loadScores() {
         <th>Tricks</th>
         <th>Score</th>
         <th>Date</th>
+        <th>LIN</th>
       </tr>
     </thead>
     <tbody>
@@ -1743,6 +1878,7 @@ async function loadScores() {
           <td>${a.tricks_made}</td>
           <td>${a.score > 0 ? '+' : ''}${a.score}</td>
           <td>${new Date(a.played_at).toLocaleDateString()}</td>
+          <td>${a.lin_data ? `<button class="btn-lin" onclick="copyLin(${a.id})">📋 Copy</button>` : '—'}</td>
         </tr>`).join('')}
     </tbody>
   </table>`;
@@ -1774,9 +1910,175 @@ document.getElementById('student-name').addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+
+async function checkAuth() {
+  const res = await fetch(API + '/auth/me');
+  appUser = await res.json();
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const section = document.getElementById('auth-section');
+  const isTeacher = appUser && appUser.role === 'teacher';
+
+  if (appUser) {
+    section.innerHTML = `
+      <span class="auth-user">${escHtml(appUser.username)}</span>
+      <span class="auth-role">${escHtml(appUser.role)}</span>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Logout</button>`;
+  } else {
+    section.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="showLogin()">Login</button>`;
+  }
+
+  // Show/hide teacher-only nav tabs
+  document.getElementById('tab-create').style.display = isTeacher ? '' : 'none';
+  document.getElementById('tab-users').style.display  = isTeacher ? '' : 'none';
+}
+
+function showLogin() {
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-overlay').classList.add('show');
+  document.getElementById('login-username').focus();
+}
+
+function hideLogin() {
+  document.getElementById('login-overlay').classList.remove('show');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  document.getElementById('login-error').textContent = '';
+  const res = await fetch(API + '/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  if (res.ok) {
+    appUser = await res.json();
+    hideLogin();
+    updateAuthUI();
+    loadLessons();
+  } else {
+    const err = await res.json();
+    document.getElementById('login-error').textContent = err.error || 'Login failed';
+  }
+}
+
+async function doLogout() {
+  await fetch(API + '/auth/logout', { method: 'POST' });
+  appUser = null;
+  updateAuthUI();
+  showPage('lessons');
+  loadLessons();
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ═══════════════════════════════════════════════════════
+//  MANAGE USERS
+// ═══════════════════════════════════════════════════════
+
+async function loadUsers() {
+  const res = await fetch(API + '/users');
+  if (!res.ok) return;
+  const users = await res.json();
+  const container = document.getElementById('users-container');
+  if (!users.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No users yet.</p></div>`;
+    return;
+  }
+  container.innerHTML = `<table class="users-table">
+    <thead><tr><th>Username</th><th>Role</th><th>Created</th><th></th></tr></thead>
+    <tbody>
+      ${users.map(u => `<tr>
+        <td>${escHtml(u.username)}</td>
+        <td><span class="role-badge ${u.role}">${u.role}</span></td>
+        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+        <td>${u.id !== appUser?.id
+          ? `<button class="btn btn-secondary btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">Delete</button>`
+          : '<span style="opacity:0.4;font-size:0.8rem;">you</span>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function createUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const role     = document.getElementById('new-role').value;
+  if (!username || !password) return toast('Username and password required');
+  const res = await fetch(API + '/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role })
+  });
+  if (res.ok) {
+    document.getElementById('new-username').value = '';
+    document.getElementById('new-password').value = '';
+    toast(`✅ Account created: ${username}`);
+    loadUsers();
+  } else {
+    const err = await res.json();
+    toast(err.error || 'Could not create user');
+  }
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`Delete account "${username}"?`)) return;
+  const res = await fetch(API + '/users/' + id, { method: 'DELETE' });
+  if (res.ok) { toast('Account deleted'); loadUsers(); }
+  else { const e = await res.json(); toast(e.error || 'Error'); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOPIC RESTRICTION
+// ═══════════════════════════════════════════════════════
+
+async function toggleTopicRestricted(name, restricted) {
+  await fetch(API + '/topics/' + encodeURIComponent(name) + '/restricted', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ restricted })
+  });
+  loadLessons();
+}
+
+// ═══════════════════════════════════════════════════════
+//  LIN COPY
+// ═══════════════════════════════════════════════════════
+
+let linCache = {};
+
+async function copyLin(attemptId) {
+  // Fetch the attempt's LIN data from the attempts endpoint
+  if (!linCache[attemptId]) {
+    // We'll store LIN in the table row data via a data attribute trick —
+    // instead, fetch all attempts and find the one we need
+    const res = await fetch(API + '/attempts/all');
+    const all = await res.json();
+    all.forEach(a => { if (a.lin_data) linCache[a.id] = a.lin_data; });
+  }
+  const lin = linCache[attemptId];
+  if (!lin) return toast('No LIN data available');
+  await navigator.clipboard.writeText(lin);
+  toast('✅ LIN copied to clipboard');
+}
+
+// ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
-loadLessons();
+async function init() {
+  await checkAuth();
+  loadLessons();
+}
+init();
 </script>
 </body>
 </html>
