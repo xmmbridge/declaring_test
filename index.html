@@ -1982,7 +1982,7 @@ async function loadScores() {
           <td>${a.tricks_made}</td>
           <td>${a.score > 0 ? '+' : ''}${a.score}</td>
           <td>${new Date(a.played_at).toLocaleDateString()}</td>
-          <td>${a.lin_data ? `<button class="btn-lin" onclick="copyLin(${a.id})">📋 Copy</button>` : '—'}</td>
+          <td>${a.lin_data ? `<button class="btn-lin" onclick="viewLin(this)" data-lin="${escHtml(a.lin_data)}">🎬 View</button>` : '—'}</td>
         </tr>`).join('')}
     </tbody>
   </table>`;
@@ -2287,24 +2287,14 @@ async function toggleTopicHomework(name, homework) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  LIN COPY
+//  LIN VIEWER
 // ═══════════════════════════════════════════════════════
 
-let linCache = {};
-
-async function copyLin(attemptId) {
-  // Fetch the attempt's LIN data from the attempts endpoint
-  if (!linCache[attemptId]) {
-    // We'll store LIN in the table row data via a data attribute trick —
-    // instead, fetch all attempts and find the one we need
-    const res = await fetch(API + '/attempts/all');
-    const all = await res.json();
-    all.forEach(a => { if (a.lin_data) linCache[a.id] = a.lin_data; });
-  }
-  const lin = linCache[attemptId];
+function viewLin(btn) {
+  const lin = btn.dataset.lin;
   if (!lin) return toast('No LIN data available');
-  await navigator.clipboard.writeText(lin);
-  toast('✅ LIN copied to clipboard');
+  const url = 'https://www.bridgebase.com/tools/handviewer.html?lin=' + encodeURIComponent(lin);
+  window.open(url, '_blank', 'noopener');
 }
 
 // ═══════════════════════════════════════════════════════
