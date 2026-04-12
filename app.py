@@ -50,6 +50,23 @@ def init_db():
         os.makedirs(db_dir, exist_ok=True)
     conn = get_db()
     conn.executescript('''
+        CREATE TABLE IF NOT EXISTS groups (
+            id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS user_groups (
+            user_id  INTEGER NOT NULL,
+            group_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, group_id),
+            FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS topic_groups (
+            topic_name TEXT NOT NULL,
+            group_id   INTEGER NOT NULL,
+            PRIMARY KEY (topic_name, group_id),
+            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
+        );
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
             username      TEXT NOT NULL UNIQUE,
@@ -233,8 +250,15 @@ def get_users():
     rows = conn.execute(
         'SELECT id, username, role, created_at FROM users ORDER BY username COLLATE NOCASE'
     ).fetchall()
+    users = [dict(r) for r in rows]
+    for u in users:
+        grps = conn.execute(
+            'SELECT g.id, g.name FROM groups g '
+            'JOIN user_groups ug ON ug.group_id=g.id WHERE ug.user_id=?', (u['id'],)
+        ).fetchall()
+        u['groups'] = [dict(g) for g in grps]
     conn.close()
-    return jsonify([dict(r) for r in rows])
+    return jsonify(users)
 
 @app.route('/api/users', methods=['POST'])
 @teacher_required
@@ -284,6 +308,53 @@ def change_password(uid):
     conn.close()
     return jsonify({'ok': True})
 
+# ── Groups ────────────────────────────────────────────────────────────────────
+
+@app.route('/api/groups', methods=['GET'])
+def get_groups():
+    conn = get_db()
+    rows = conn.execute('SELECT id, name FROM groups ORDER BY name COLLATE NOCASE').fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/groups', methods=['POST'])
+@teacher_required
+def create_group():
+    name = request.json.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Group name required'}), 400
+    conn = get_db()
+    try:
+        cur = conn.execute('INSERT INTO groups (name) VALUES (?)', (name,))
+        gid = cur.lastrowid
+        conn.commit()
+    except Exception:
+        conn.close()
+        return jsonify({'error': 'Group name already exists'}), 409
+    conn.close()
+    return jsonify({'id': gid, 'name': name}), 201
+
+@app.route('/api/groups/<int:gid>', methods=['DELETE'])
+@teacher_required
+def delete_group(gid):
+    conn = get_db()
+    conn.execute('DELETE FROM groups WHERE id=?', (gid,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/users/<int:uid>/groups', methods=['PUT'])
+@teacher_required
+def set_user_groups(uid):
+    group_ids = request.json.get('group_ids', [])
+    conn = get_db()
+    conn.execute('DELETE FROM user_groups WHERE user_id=?', (uid,))
+    for gid in group_ids:
+        conn.execute('INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?,?)', (uid, gid))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 # ── Topics ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/topics', methods=['GET'])
@@ -296,8 +367,15 @@ def get_topics():
         WHERE l.topic != ''
         ORDER BY l.topic COLLATE NOCASE
     ''').fetchall()
+    topics = [dict(r) for r in rows]
+    for t in topics:
+        grps = conn.execute(
+            'SELECT g.id, g.name FROM groups g '
+            'JOIN topic_groups tg ON tg.group_id=g.id WHERE tg.topic_name=?', (t['topic'],)
+        ).fetchall()
+        t['groups'] = [dict(g) for g in grps]
     conn.close()
-    return jsonify([dict(r) for r in rows])
+    return jsonify(topics)
 
 @app.route('/api/topics/<path:name>/restricted', methods=['PUT'])
 @teacher_required
@@ -310,17 +388,51 @@ def set_topic_restricted(name):
     conn.close()
     return jsonify({'ok': True})
 
+@app.route('/api/topics/<path:name>/groups', methods=['PUT'])
+@teacher_required
+def set_topic_groups(name):
+    group_ids = request.json.get('group_ids', [])
+    conn = get_db()
+    conn.execute('DELETE FROM topic_groups WHERE topic_name=?', (name,))
+    for gid in group_ids:
+        conn.execute('INSERT OR IGNORE INTO topic_groups (topic_name, group_id) VALUES (?,?)',
+                     (name, gid))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 # ── Lessons ───────────────────────────────────────────────────────────────────
 
 @app.route('/api/lessons', methods=['GET'])
 def get_lessons():
     user = current_user()
     conn = get_db()
-    if user:  # logged-in users see all lessons
+    if user and user['role'] == 'teacher':
+        # Teachers see everything
         rows = conn.execute(
             'SELECT * FROM lessons ORDER BY title COLLATE NOCASE ASC'
         ).fetchall()
-    else:     # guests see only non-restricted topics
+    elif user:
+        # Students: general topics + restricted topics with no groups + restricted topics where they're in an assigned group
+        rows = conn.execute('''
+            SELECT DISTINCT l.* FROM lessons l
+            LEFT JOIN topics t ON t.name = l.topic
+            WHERE
+                COALESCE(t.restricted, 0) = 0
+                OR (
+                    COALESCE(t.restricted, 0) = 1 AND (
+                        NOT EXISTS (SELECT 1 FROM topic_groups WHERE topic_name = l.topic)
+                        OR EXISTS (
+                            SELECT 1 FROM topic_groups tg
+                            JOIN user_groups ug ON ug.group_id = tg.group_id
+                            WHERE tg.topic_name = l.topic AND ug.user_id = ?
+                        )
+                    )
+                )
+            ORDER BY l.title COLLATE NOCASE ASC
+        ''', (user['id'],)).fetchall()
+    else:
+        # Guests: general topics only
         rows = conn.execute('''
             SELECT l.* FROM lessons l
             LEFT JOIN topics t ON t.name = l.topic
