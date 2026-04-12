@@ -1159,13 +1159,13 @@ function showPage(name) {
 // ═══════════════════════════════════════════════════════
 
 async function loadLessons(forScores=false) {
-  const [lessonsRes, topicsRes] = await Promise.all([
-    fetch(API + '/lessons'),
-    fetch(API + '/topics'),
-  ]);
-  const lessons = await lessonsRes.json();
+  const fetches = [fetch(API + '/lessons'), fetch(API + '/topics')];
+  if (appUser) fetches.push(fetch(API + '/attempts/my-status'));
+  const results = await Promise.all(fetches);
+  const lessons = await results[0].json();
   const topicMeta = {};
-  (await topicsRes.json()).forEach(t => { topicMeta[t.topic] = t; });
+  (await results[1].json()).forEach(t => { topicMeta[t.topic] = t; });
+  const myStatus = appUser ? await results[2].json() : {};
 
   if (!forScores) {
     const grid = document.getElementById('lesson-grid');
@@ -1195,7 +1195,16 @@ async function loadLessons(forScores=false) {
 
     const isTeacher = appUser && appUser.role === 'teacher';
 
-    const cardHtml = l => `
+    // Homework badge helper (only for logged-in users)
+    const hwBadge = (lessonId) => {
+      const s = myStatus[String(lessonId)];
+      if (!s) return '<span class="hw-badge hw-badge-none">——</span>';
+      if (!s.made) return '<span class="hw-badge hw-badge-down">▼ Down</span>';
+      if (s.first_try) return '<span class="hw-badge hw-badge-rainbow">★ First Try</span>';
+      return '<span class="hw-badge hw-badge-made">✓ Made</span>';
+    };
+
+    const cardHtml = (l, showBadge=false) => `
       <div class="lesson-card" onclick="openLesson(${l.id})">
         ${isTeacher ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteLesson(${l.id})">✕</button>
         <button class="edit-btn" onclick="event.stopPropagation(); editLesson(${l.id})">✎</button>` : ''}
@@ -1203,6 +1212,7 @@ async function loadLessons(forScores=false) {
         <div class="contract-badge">${formatContract(l.contract)} by ${PLAYER_NAMES[l.declarer]}</div>
         <div class="technique">${escHtml(l.technique || 'General Practice')}</div>
         <div class="par-info">Target: ${l.contract[0] * 1 + 6} tricks</div>
+        ${showBadge && appUser ? hwBadge(l.id) : ''}
       </div>`;
 
     const allGroups = await (await fetch(API + '/groups')).json();
@@ -1211,6 +1221,7 @@ async function loadLessons(forScores=false) {
       if (!isTeacher || !topic) return '';
       const meta   = topicMeta[topic];
       const locked = meta ? meta.restricted : false;
+      const isHw   = meta ? !!meta.homework : false;
       const assignedGroups = meta ? meta.groups : [];
       const groupChecks = allGroups.map(g =>
         `<label class="group-check-label">
@@ -1224,7 +1235,9 @@ async function loadLessons(forScores=false) {
           onclick="event.stopPropagation(); toggleTopicRestricted('${escHtml(topic)}', ${!locked})"
           >${locked ? '🔒' : '🔓'}</button>
         ${locked && allGroups.length ? `<button class="topic-lock locked" title="Assign groups"
-          onclick="event.stopPropagation(); toggleGroupPanel('tg-${encodeURIComponent(topic)}')">👥</button>` : ''}`;
+          onclick="event.stopPropagation(); toggleGroupPanel('tg-${encodeURIComponent(topic)}')">👥</button>` : ''}
+        <button class="hw-toggle ${isHw ? 'active' : ''}" title="${isHw ? 'Remove from homework' : 'Set as homework'}"
+          onclick="event.stopPropagation(); toggleTopicHomework('${escHtml(topic)}', ${!isHw})">📋</button>`;
     };
 
     const groupLabel = (topic) => {
@@ -1253,7 +1266,7 @@ async function loadLessons(forScores=false) {
       </div>`;
     };
 
-    grid.innerHTML = topicKeys.map(topic => `
+    const renderTopicGroup = (topic, showBadge=false) => `
       <div class="topic-group">
         <div class="topic-header" onclick="toggleTopic(this)">
           <span class="topic-arrow">▾</span>
@@ -1264,9 +1277,29 @@ async function loadLessons(forScores=false) {
         </div>
         ${groupPanel(topic)}
         <div class="topic-body">
-          <div class="lesson-grid">${groups[topic].map(cardHtml).join('')}</div>
+          <div class="lesson-grid">${groups[topic].map(l => cardHtml(l, showBadge)).join('')}</div>
         </div>
-      </div>`).join('');
+      </div>`;
+
+    // Separate homework folders from regular ones
+    const hwTopics = topicKeys.filter(t => t && topicMeta[t] && topicMeta[t].homework);
+    const regularTopics = topicKeys.filter(t => !topicMeta[t] || !topicMeta[t].homework);
+
+    let html = '';
+
+    // Homework section at the top (shown when logged in and homework folders exist)
+    if (hwTopics.length > 0) {
+      html += `<div class="homework-section">
+        <div class="homework-section-title">📋 Homework</div>
+        ${hwTopics.map(t => renderTopicGroup(t, true)).join('')}
+      </div>`;
+    }
+
+    // Regular lessons
+    html += regularTopics.map(t => renderTopicGroup(t, false)).join('');
+
+    grid.innerHTML = html || `<div class="empty-state"><div class="icon">🃏</div>
+      <p>No lessons yet. Create one to get started!</p></div>`;
   } else {
     const sel = document.getElementById('score-filter');
     sel.innerHTML = '<option value="">All Lessons</option>' +
@@ -2240,6 +2273,15 @@ async function toggleTopicRestricted(name, restricted) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ restricted })
+  });
+  loadLessons();
+}
+
+async function toggleTopicHomework(name, homework) {
+  await fetch(API + '/topics/' + encodeURIComponent(name) + '/homework', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ homework })
   });
   loadLessons();
 }
