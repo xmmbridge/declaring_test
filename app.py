@@ -583,11 +583,9 @@ def dds_next_move():
 
     results = list(solve_board(deal))
 
-    # DDS returns tricks for the DECLARING side regardless of who is playing.
-    # Declaring-side players maximise; defending-side players minimise.
-    declaring_side = {'N', 'S'} if declarer in ('N', 'S') else {'E', 'W'}
-    is_declaring   = next_player in declaring_side
-    best_card, best_tricks = (max if is_declaring else min)(results, key=lambda x: x[1])
+    # solve_board returns tricks for the current player's side (deal.first after
+    # replaying the trick). Every player maximises their own side's tricks.
+    best_card, best_tricks = max(results, key=lambda x: x[1])
     return jsonify({
         'best_card':   card_to_str(best_card),
         'tricks':      best_tricks,
