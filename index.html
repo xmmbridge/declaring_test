@@ -536,26 +536,14 @@
     background: linear-gradient(135deg, var(--green-dark), var(--green));
     border: 2px solid var(--gold);
     border-radius: 12px;
-    padding: 40px 60px;
+    padding: 48px 56px;
     text-align: center;
-    max-width: 480px;
+    max-width: 540px;
     width: 90%;
   }
-  .result-box h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    margin-bottom: 8px;
-  }
-  .result-box.made h2 { color: #88ee88; }
-  .result-box.down h2 { color: #ee6666; }
-  .result-box .score-big {
-    font-family: 'Playfair Display', serif;
-    font-size: 3rem;
-    color: var(--gold);
-    margin: 16px 0;
-  }
-  .result-box p { color: rgba(245,240,232,0.8); margin-bottom: 8px; }
-  .result-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+  .result-box.made #result-heading { color: #88ee88; }
+  .result-box.down #result-heading { color: #ee6666; }
+  .result-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 32px; }
 
   /* ── STUDENT NAME INPUT ── */
   .student-form {
@@ -1110,11 +1098,8 @@
 ══════════════════════════════════════════════════════ -->
 <div class="result-overlay" id="result-overlay">
   <div class="result-box" id="result-box">
-    <h2 id="result-heading">—</h2>
-    <div class="score-big" id="result-score">—</div>
-    <p id="result-detail">—</p>
-    <p id="result-contract">—</p>
-    <p id="result-quip" style="font-style:italic; color:rgba(245,240,232,0.6); margin-top:12px; font-size:0.95rem;">—</p>
+    <p id="result-heading" style="font-size:0.9rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; opacity:0.7; margin-bottom:16px;">—</p>
+    <p id="result-quip" style="font-family:'Playfair Display',serif; font-size:1.6rem; line-height:1.4; color:var(--cream); margin:0;">—</p>
     <div class="result-buttons">
       <button class="btn btn-secondary" onclick="playAgain()">▶ Play Again</button>
       <button class="btn btn-primary" onclick="document.getElementById('result-overlay').classList.remove('show'); showPage('lessons')">← Lessons</button>
