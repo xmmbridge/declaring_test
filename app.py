@@ -581,24 +581,30 @@ def dds_next_move():
     else:
         deal.first = PLAYER_MAP[next_player]
 
-    results = list(solve_board(deal))
+    # Convert to strings immediately — avoids Card object attribute issues.
+    # Card string format: "SR" where S=suit char ('S','H','D','C'), R=rank char.
+    results_str = [(card_to_str(c), t) for c, t in solve_board(deal)]
 
     # solve_board always returns NS tricks regardless of who is playing.
     # NS players want MORE NS tricks (max); EW players want FEWER (min).
     ns_player = next_player in ('N', 'S')
-    target_tricks = max(t for _, t in results) if ns_player else min(t for _, t in results)
+    target_tricks = max(t for _, t in results_str) if ns_player else min(t for _, t in results_str)
 
     # Among cards that achieve the target, prefer the lowest-ranked card
     # so defenders (and declarer) don't burn honours unnecessarily.
-    rank_order = 'AKQJT98765432'
-    candidates = [c for c, t in results if t == target_tricks]
-    best_card  = max(candidates, key=lambda c: rank_order.index(RANK_BACK[c.rank]))
+    # rank_order[0]='A' (highest) … rank_order[12]='2' (lowest).
+    # max by index picks the card whose rank sits furthest right = lowest rank.
+    rank_order    = 'AKQJT98765432'
+    candidates    = [s for s, t in results_str if t == target_tricks]
+    best_card_str = max(candidates, key=lambda s: rank_order.index(s[1]))
+
+    print(f'DDS next={next_player} ns={ns_player} target={target_tricks} '
+          f'cands={candidates} best={best_card_str}')
 
     return jsonify({
-        'best_card':   card_to_str(best_card),
+        'best_card':   best_card_str,
         'tricks':      target_tricks,
-        'all_options': sorted([(card_to_str(c), t) for c, t in results],
-                              key=lambda x: x[1], reverse=True)
+        'all_options': sorted(results_str, key=lambda x: x[1], reverse=True)
     })
 
 # ── Attempts ──────────────────────────────────────────────────────────────────
