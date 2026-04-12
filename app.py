@@ -573,7 +573,18 @@ def dds_next_move():
         deal.first = PLAYER_MAP[d['next_player']]
 
     results = list(solve_board(deal))
-    best_card, best_tricks = max(results, key=lambda x: x[1])
+
+    # DDS returns tricks for the trick-leader's side.
+    # Players on the same side as the leader should maximise those tricks;
+    # players on the opposite side should minimise them.
+    next_player = d['next_player']
+    if current_trick:
+        trick_leader = current_trick[0]['player']
+        ns = {'N', 'S'}
+        same_side = (trick_leader in ns) == (next_player in ns)
+    else:
+        same_side = True   # new trick: DDS returns current leader's side — always maximise
+    best_card, best_tricks = (max if same_side else min)(results, key=lambda x: x[1])
     return jsonify({
         'best_card':   card_to_str(best_card),
         'tricks':      best_tricks,
