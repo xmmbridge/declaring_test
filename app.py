@@ -583,12 +583,20 @@ def dds_next_move():
 
     results = list(solve_board(deal))
 
-    # solve_board returns tricks for the current player's side (deal.first after
-    # replaying the trick). Every player maximises their own side's tricks.
-    best_card, best_tricks = max(results, key=lambda x: x[1])
+    # solve_board always returns NS tricks regardless of who is playing.
+    # NS players want MORE NS tricks (max); EW players want FEWER (min).
+    ns_player = next_player in ('N', 'S')
+    target_tricks = max(t for _, t in results) if ns_player else min(t for _, t in results)
+
+    # Among cards that achieve the target, prefer the lowest-ranked card
+    # so defenders (and declarer) don't burn honours unnecessarily.
+    rank_order = 'AKQJT98765432'
+    candidates = [c for c, t in results if t == target_tricks]
+    best_card  = max(candidates, key=lambda c: rank_order.index(RANK_BACK[c.rank]))
+
     return jsonify({
         'best_card':   card_to_str(best_card),
-        'tricks':      best_tricks,
+        'tricks':      target_tricks,
         'all_options': sorted([(card_to_str(c), t) for c, t in results],
                               key=lambda x: x[1], reverse=True)
     })
