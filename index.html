@@ -2001,9 +2001,22 @@ async function loadUsers() {
         <td>${escHtml(u.username)}</td>
         <td><span class="role-badge ${u.role}">${u.role}</span></td>
         <td>${new Date(u.created_at).toLocaleDateString()}</td>
-        <td>${u.id !== appUser?.id
-          ? `<button class="btn btn-secondary btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">Delete</button>`
-          : '<span style="opacity:0.4;font-size:0.8rem;">you</span>'}</td>
+        <td style="display:flex;gap:6px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="togglePwForm(${u.id})">🔑 Password</button>
+          ${u.id !== appUser?.id
+            ? `<button class="btn btn-secondary btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">Delete</button>`
+            : '<span style="opacity:0.4;font-size:0.8rem;">you</span>'}
+        </td>
+      </tr>
+      <tr id="pw-row-${u.id}" style="display:none">
+        <td colspan="4">
+          <div style="display:flex;gap:8px;align-items:center;padding:4px 0;">
+            <input type="password" id="pw-input-${u.id}" placeholder="New password"
+              style="flex:1;max-width:220px;" />
+            <button class="btn btn-primary btn-sm" onclick="changePassword(${u.id})">Save</button>
+            <button class="btn btn-secondary btn-sm" onclick="togglePwForm(${u.id})">Cancel</button>
+          </div>
+        </td>
       </tr>`).join('')}
     </tbody>
   </table>`;
@@ -2027,6 +2040,30 @@ async function createUser() {
   } else {
     const err = await res.json();
     toast(err.error || 'Could not create user');
+  }
+}
+
+function togglePwForm(id) {
+  const row = document.getElementById('pw-row-' + id);
+  const isHidden = row.style.display === 'none';
+  row.style.display = isHidden ? '' : 'none';
+  if (isHidden) document.getElementById('pw-input-' + id).focus();
+}
+
+async function changePassword(id) {
+  const pw = document.getElementById('pw-input-' + id).value;
+  if (!pw) return toast('Please enter a new password');
+  const res = await fetch(API + '/users/' + id + '/password', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  if (res.ok) {
+    toast('✅ Password updated');
+    loadUsers();
+  } else {
+    const e = await res.json();
+    toast(e.error || 'Error updating password');
   }
 }
 

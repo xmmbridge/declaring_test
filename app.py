@@ -271,6 +271,19 @@ def delete_user(uid):
     conn.close()
     return jsonify({'ok': True})
 
+@app.route('/api/users/<int:uid>/password', methods=['PUT'])
+@teacher_required
+def change_password(uid):
+    password = request.json.get('password', '')
+    if not password:
+        return jsonify({'error': 'Password required'}), 400
+    conn = get_db()
+    conn.execute('UPDATE users SET password_hash=? WHERE id=?',
+                 (generate_password_hash(password), uid))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 # ── Topics ────────────────────────────────────────────────────────────────────
 
 @app.route('/api/topics', methods=['GET'])
