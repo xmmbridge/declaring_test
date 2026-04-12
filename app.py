@@ -555,36 +555,39 @@ def remaining_to_pbn(remaining):
 
 @app.route('/api/dds/next_move', methods=['POST'])
 def dds_next_move():
-    d         = request.json
-    remaining = d['remaining_hands']
-    pbn       = remaining_to_pbn(remaining)
-    deal      = Deal(pbn)
+    d             = request.json
+    remaining     = d['remaining_hands']
+    current_trick = d.get('current_trick', [])
+    next_player   = d['next_player']
+    declarer      = d.get('declarer', 'S')
+
+    # Build PBN with current-trick cards restored to their owners' hands,
+    # so deal.play() can remove them normally (avoids from_hand=False issues).
+    hands_for_pbn = {p: list(cards) for p, cards in remaining.items()}
+    for entry in current_trick:
+        hands_for_pbn[entry['player']].append(entry['card'])
+
+    pbn  = remaining_to_pbn(hands_for_pbn)
+    deal = Deal(pbn)
     deal.trump = SUIT_MAP[d['trump']]
 
-    current_trick = d.get('current_trick', [])
     if current_trick:
         deal.first = PLAYER_MAP[current_trick[0]['player']]
         for entry in current_trick:
             try:
-                deal.play(str_to_card(entry['card']), from_hand=False)
+                deal.play(str_to_card(entry['card']))
             except Exception as ex:
                 print('play error:', ex)
     else:
-        deal.first = PLAYER_MAP[d['next_player']]
+        deal.first = PLAYER_MAP[next_player]
 
     results = list(solve_board(deal))
 
-    # DDS returns tricks for the trick-leader's side.
-    # Players on the same side as the leader should maximise those tricks;
-    # players on the opposite side should minimise them.
-    next_player = d['next_player']
-    if current_trick:
-        trick_leader = current_trick[0]['player']
-        ns = {'N', 'S'}
-        same_side = (trick_leader in ns) == (next_player in ns)
-    else:
-        same_side = True   # new trick: DDS returns current leader's side — always maximise
-    best_card, best_tricks = (max if same_side else min)(results, key=lambda x: x[1])
+    # DDS returns tricks for the DECLARING side regardless of who is playing.
+    # Declaring-side players maximise; defending-side players minimise.
+    declaring_side = {'N', 'S'} if declarer in ('N', 'S') else {'E', 'W'}
+    is_declaring   = next_player in declaring_side
+    best_card, best_tricks = (max if is_declaring else min)(results, key=lambda x: x[1])
     return jsonify({
         'best_card':   card_to_str(best_card),
         'tricks':      best_tricks,

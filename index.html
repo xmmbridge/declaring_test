@@ -1798,6 +1798,7 @@ async function getDDSBestCard(player) {
       body: JSON.stringify({
         trump: state.trump,
         next_player: player,
+        declarer: state.declarer,
         current_trick: state.currentTrick,
         remaining_hands: remaining
       })
