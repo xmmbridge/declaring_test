@@ -699,6 +699,80 @@
              cursor: pointer; }
   .btn-lin:hover { background: rgba(255,255,255,0.18); }
 
+  /* ── MOCKÉDEX ── */
+  .mockdex-summary {
+    display: flex; gap: 24px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .mockdex-stat-block {
+    background: rgba(255,255,255,0.05); border-radius: 8px;
+    padding: 14px 22px; flex: 1; min-width: 160px;
+  }
+  .mockdex-stat-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(245,240,232,0.45); margin-bottom: 6px;
+  }
+  .mockdex-stat-counts {
+    font-size: 1.4rem; font-family: 'Playfair Display', serif; color: var(--gold);
+  }
+  .mockdex-stat-counts span { font-size: 0.85rem; color: rgba(245,240,232,0.4); }
+  .mockdex-progress-wrap {
+    height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px;
+    margin-top: 8px; overflow: hidden;
+  }
+  .mockdex-progress-bar {
+    height: 100%; border-radius: 3px; transition: width 0.6s ease;
+  }
+  .mockdex-progress-bar.down { background: linear-gradient(90deg, #cc4444, #ee6666); }
+  .mockdex-progress-bar.made { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+
+  .mockdex-section { margin-bottom: 36px; }
+  .mockdex-section-header {
+    font-family: 'Playfair Display', serif; font-size: 1.05rem;
+    color: var(--gold); margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(201,168,76,0.25);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .mockdex-section-header .mdx-count {
+    font-size: 0.75rem; font-family: 'Source Sans 3', sans-serif;
+    color: rgba(245,240,232,0.4); font-weight: 400;
+  }
+  .mockdex-list {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .mockdex-entry {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 8px 12px; border-radius: 6px;
+    border: 1px solid transparent; transition: background 0.15s;
+  }
+  .mockdex-entry.locked {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.05);
+  }
+  .mockdex-entry.unlocked-down {
+    background: rgba(220,60,60,0.08);
+    border-color: rgba(220,60,60,0.15);
+  }
+  .mockdex-entry.unlocked-made {
+    background: rgba(201,168,76,0.08);
+    border-color: rgba(201,168,76,0.15);
+  }
+  .mockdex-num {
+    font-family: 'Source Sans 3', monospace; font-size: 0.72rem;
+    font-weight: 600; letter-spacing: 0.05em; min-width: 32px;
+    flex-shrink: 0;
+  }
+  .mockdex-entry.locked      .mockdex-num { color: rgba(245,240,232,0.2); }
+  .mockdex-entry.unlocked-down .mockdex-num { color: #ee6666; }
+  .mockdex-entry.unlocked-made .mockdex-num { color: var(--gold); }
+  .mockdex-text {
+    font-size: 0.88rem; line-height: 1.45;
+  }
+  .mockdex-entry.locked .mockdex-text {
+    color: rgba(245,240,232,0.2); letter-spacing: 0.15em;
+  }
+  .mockdex-entry.unlocked-down .mockdex-text { color: rgba(245,240,232,0.85); }
+  .mockdex-entry.unlocked-made .mockdex-text { color: rgba(245,240,232,0.85); }
+
   /* suit colors inline */
   .s { color: #cccccc; }
   .h { color: #ff6666; }
@@ -711,10 +785,11 @@
 <header>
   <h1>BadManners<span>3000</span> <small style="font-size:0.45em;opacity:0.5;font-weight:300;letter-spacing:0.05em;">aka BM3K</small></h1>
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('lessons')">📚 Lessons</button>
+    <button class="nav-tab active" id="tab-lessons" onclick="showPage('lessons')">📚 Lessons</button>
     <button class="nav-tab teacher-only" id="tab-create" onclick="newLesson()" style="display:none">➕ Create Lesson</button>
-    <button class="nav-tab" onclick="showPage('scores')">📊 Scores</button>
+    <button class="nav-tab" id="tab-scores" onclick="showPage('scores')">📊 Scores</button>
     <button class="nav-tab teacher-only" id="tab-users" onclick="showPage('users')" style="display:none">👥 Manage Users</button>
+    <button class="nav-tab auth-only" id="tab-mockdex" onclick="showPage('mockdex')" style="display:none" title="Your unlocked roasts &amp; compliments">📖 Mockédex</button>
   </div>
   <div class="auth-section" id="auth-section">
     <button class="btn btn-secondary btn-sm" onclick="showLogin()">Login</button>
@@ -1048,6 +1123,34 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════
+     MOCKÉDEX PAGE
+══════════════════════════════════════════════════════ -->
+<div class="page" id="mockdex-page">
+  <div class="page-title">Mockédex</div>
+  <p style="color:rgba(245,240,232,0.45); margin-bottom:24px; font-size:0.88rem; max-width:560px;">
+    Every roast and compliment you encounter is recorded here. Keep playing to unlock them all.
+    Locked entries are shown as <strong style="letter-spacing:0.1em;">???</strong>.
+  </p>
+  <div class="mockdex-summary">
+    <div class="mockdex-stat-block">
+      <div class="mockdex-stat-label">💀 Roasts unlocked</div>
+      <div class="mockdex-stat-counts" id="mdx-down-count">0 <span>/ 100</span></div>
+      <div class="mockdex-progress-wrap">
+        <div class="mockdex-progress-bar down" id="mdx-down-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="mockdex-stat-block">
+      <div class="mockdex-stat-label">🌸 Compliments unlocked</div>
+      <div class="mockdex-stat-counts" id="mdx-made-count">0 <span>/ 20</span></div>
+      <div class="mockdex-progress-wrap">
+        <div class="mockdex-progress-bar made" id="mdx-made-bar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+  <div id="mockdex-container"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
      TOAST
 ══════════════════════════════════════════════════════ -->
 <div class="toast" id="toast"></div>
@@ -1226,13 +1329,13 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(name + '-page').classList.add('active');
-  const tabs = { lessons:0, create:1, scores:2 };
-  if (tabs[name] !== undefined)
-    document.querySelectorAll('.nav-tab')[tabs[name]].classList.add('active');
+  const tabId = { lessons:'tab-lessons', scores:'tab-scores', mockdex:'tab-mockdex' };
+  if (tabId[name]) document.getElementById(tabId[name])?.classList.add('active');
 
   if (name === 'lessons') loadLessons();
   if (name === 'scores')  { loadLessons(true); loadScores(); }
   if (name === 'users')   loadUsers();
+  if (name === 'mockdex') loadMockdex();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1895,8 +1998,16 @@ async function finishGame() {
     formatContract(state.contract) + ' by ' + PLAYER_NAMES[state.declarer];
   
   const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
-  document.getElementById('result-quip').textContent =
-    quipList[Math.floor(Math.random() * quipList.length)];
+  const quipType = diff >= 0 ? 'made' : 'down';
+  const quipIdx  = Math.floor(Math.random() * quipList.length);
+  document.getElementById('result-quip').textContent = quipList[quipIdx];
+  if (appUser) {
+    fetch(API + '/quips/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: quipType, idx: quipIdx })
+    }).catch(() => {});
+  }
 
   document.getElementById('result-overlay').classList.add('show');
 }
@@ -2117,9 +2228,10 @@ function updateAuthUI() {
     section.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="showLogin()">Login</button>`;
   }
 
-  // Show/hide teacher-only nav tabs
-  document.getElementById('tab-create').style.display = isTeacher ? '' : 'none';
-  document.getElementById('tab-users').style.display  = isTeacher ? '' : 'none';
+  // Show/hide role-gated nav tabs
+  document.getElementById('tab-create').style.display  = isTeacher ? '' : 'none';
+  document.getElementById('tab-users').style.display   = isTeacher ? '' : 'none';
+  document.getElementById('tab-mockdex').style.display = appUser   ? '' : 'none';
 }
 
 function showLogin() {
@@ -2332,6 +2444,48 @@ async function deleteUser(id, username) {
   const res = await fetch(API + '/users/' + id, { method: 'DELETE' });
   if (res.ok) { toast('Account deleted'); loadUsers(); }
   else { const e = await res.json(); toast(e.error || 'Error'); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MOCKÉDEX
+// ═══════════════════════════════════════════════════════
+
+async function loadMockdex() {
+  const res = await fetch(API + '/quips/unlocked');
+  const unlocked = await res.json();
+  const unlockedDown = new Set(unlocked.down);
+  const unlockedMade = new Set(unlocked.made);
+
+  // Update summary stats
+  document.getElementById('mdx-down-count').innerHTML =
+    `${unlockedDown.size} <span>/ ${QUIPS_DOWN.length}</span>`;
+  document.getElementById('mdx-made-count').innerHTML =
+    `${unlockedMade.size} <span>/ ${QUIPS_MADE.length}</span>`;
+  document.getElementById('mdx-down-bar').style.width =
+    Math.round(unlockedDown.size / QUIPS_DOWN.length * 100) + '%';
+  document.getElementById('mdx-made-bar').style.width =
+    Math.round(unlockedMade.size / QUIPS_MADE.length * 100) + '%';
+
+  const renderSection = (title, quips, unlockedSet, typeClass) => {
+    const entries = quips.map((q, i) => {
+      const seen = unlockedSet.has(i);
+      return `<div class="mockdex-entry ${seen ? 'unlocked-' + typeClass : 'locked'}">
+        <span class="mockdex-num">#${String(i + 1).padStart(String(quips.length).length, '0')}</span>
+        <span class="mockdex-text">${seen ? escHtml(q) : '???'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="mockdex-section">
+      <div class="mockdex-section-header">
+        ${title}
+        <span class="mdx-count">${unlockedSet.size} / ${quips.length} unlocked</span>
+      </div>
+      <div class="mockdex-list">${entries}</div>
+    </div>`;
+  };
+
+  document.getElementById('mockdex-container').innerHTML =
+    renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down') +
+    renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made');
 }
 
 // ═══════════════════════════════════════════════════════

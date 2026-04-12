@@ -76,7 +76,16 @@ def init_db():
         );
         CREATE TABLE IF NOT EXISTS topics (
             name          TEXT PRIMARY KEY,
-            restricted    INTEGER NOT NULL DEFAULT 0
+            restricted    INTEGER NOT NULL DEFAULT 0,
+            homework      INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS quip_unlocks (
+            user_id     INTEGER NOT NULL,
+            quip_type   TEXT    NOT NULL,
+            quip_idx    INTEGER NOT NULL,
+            unlocked_at TEXT DEFAULT (datetime('now')),
+            PRIMARY KEY (user_id, quip_type, quip_idx),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
         CREATE TABLE IF NOT EXISTS lessons (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,6 +122,7 @@ def init_db():
         'ALTER TABLE lessons  ADD COLUMN topic     TEXT DEFAULT ""',
         'ALTER TABLE attempts ADD COLUMN user_id   INTEGER',
         'ALTER TABLE attempts ADD COLUMN lin_data  TEXT DEFAULT ""',
+        'ALTER TABLE topics   ADD COLUMN homework  INTEGER NOT NULL DEFAULT 0',
     ]:
         try:
             conn.execute(stmt)
@@ -361,7 +371,9 @@ def set_user_groups(uid):
 def get_topics():
     conn = get_db()
     rows = conn.execute('''
-        SELECT DISTINCT l.topic, COALESCE(t.restricted, 0) AS restricted
+        SELECT DISTINCT l.topic,
+               COALESCE(t.restricted, 0) AS restricted,
+               COALESCE(t.homework,   0) AS homework
         FROM lessons l
         LEFT JOIN topics t ON t.name = l.topic
         WHERE l.topic != ''
@@ -382,8 +394,23 @@ def get_topics():
 def set_topic_restricted(name):
     restricted = 1 if request.json.get('restricted') else 0
     conn = get_db()
-    conn.execute('INSERT OR REPLACE INTO topics (name, restricted) VALUES (?,?)',
-                 (name, restricted))
+    conn.execute(
+        'INSERT OR REPLACE INTO topics (name, restricted, homework) '
+        'VALUES (?, ?, COALESCE((SELECT homework FROM topics WHERE name=?), 0))',
+        (name, restricted, name))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/topics/<path:name>/homework', methods=['PUT'])
+@teacher_required
+def set_topic_homework(name):
+    homework = 1 if request.json.get('homework') else 0
+    conn = get_db()
+    conn.execute(
+        'INSERT OR REPLACE INTO topics (name, restricted, homework) '
+        'VALUES (?, COALESCE((SELECT restricted FROM topics WHERE name=?), 0), ?)',
+        (name, name, homework))
     conn.commit()
     conn.close()
     return jsonify({'ok': True})
@@ -614,6 +641,66 @@ def get_all_attempts():
         'ORDER BY a.played_at DESC LIMIT 500').fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
+
+@app.route('/api/attempts/my-status', methods=['GET'])
+def my_attempt_status():
+    user = current_user()
+    if not user:
+        return jsonify({})
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT lesson_id, result, played_at FROM attempts '
+        'WHERE user_id=? ORDER BY lesson_id, played_at ASC',
+        (user['id'],)
+    ).fetchall()
+    conn.close()
+    status = {}
+    for row in rows:
+        lid  = str(row['lesson_id'])
+        made = 'Made' in row['result']
+        if lid not in status:
+            status[lid] = {'attempts': 0, 'made': False, 'first_try': False}
+        status[lid]['attempts'] += 1
+        if made and not status[lid]['made']:
+            status[lid]['made']      = True
+            status[lid]['first_try'] = (status[lid]['attempts'] == 1)
+    return jsonify(status)
+
+# ── Quip unlocks (Mockédex) ───────────────────────────────────────────────────
+
+@app.route('/api/quips/unlock', methods=['POST'])
+def unlock_quip():
+    user = current_user()
+    if not user:
+        return jsonify({'ok': False}), 401
+    data  = request.json or {}
+    qtype = data.get('type')
+    idx   = data.get('idx')
+    if qtype not in ('made', 'down') or not isinstance(idx, int):
+        return jsonify({'error': 'invalid'}), 400
+    conn = get_db()
+    conn.execute(
+        'INSERT OR IGNORE INTO quip_unlocks (user_id, quip_type, quip_idx) VALUES (?,?,?)',
+        (user['id'], qtype, idx))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/quips/unlocked', methods=['GET'])
+def get_unlocked_quips():
+    user = current_user()
+    if not user:
+        return jsonify({'made': [], 'down': []})
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT quip_type, quip_idx FROM quip_unlocks WHERE user_id=?',
+        (user['id'],)
+    ).fetchall()
+    conn.close()
+    result = {'made': [], 'down': []}
+    for r in rows:
+        result[r['quip_type']].append(r['quip_idx'])
+    return jsonify(result)
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
