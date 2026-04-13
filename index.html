@@ -2541,7 +2541,7 @@ async function loadScores() {
           <td>${a.score > 0 ? '+' : ''}${a.score}</td>
           <td>${new Date(a.played_at).toLocaleDateString()}</td>
           <td>${a.lin_data ? `<button class="btn-lin" onclick="viewLin(this)" data-lin="${escHtml(a.lin_data)}">🎬 View</button>` : '—'}</td>
-          ${isTeacher ? `<td><button class="delete-btn" title="Delete record" onclick="deleteScore(${a.id})">✕</button></td>` : ''}
+          ${isTeacher ? `<td><button class="btn-lin" style="color:#ee6666;border-color:rgba(238,102,102,0.4);" title="Delete record" onclick="deleteScore(${a.id})">✕ Delete</button></td>` : ''}
         </tr>`).join('')}
     </tbody>
   </table>`;
