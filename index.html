@@ -393,11 +393,11 @@
   }
   .game-info h2 {
     font-family: 'Playfair Display', serif;
-    font-size: 3rem;
+    font-size: 9rem;
     color: var(--gold);
-    line-height: 1.1;
+    line-height: 1;
   }
-  .game-info p { font-size: 0.85rem; color: rgba(245,240,232,0.7); margin-top: 6px; }
+  .game-info p { font-size: 0.9rem; color: rgba(245,240,232,0.7); margin-top: 4px; }
   .score-display { text-align: right; }
   .score-display .tricks {
     font-family: 'Playfair Display', serif;
@@ -446,7 +446,7 @@
   }
   .card.side {
     transform: rotate(90deg);
-    margin: -14px 0;
+    margin: -22px 0;
   }
 
   .hand-label {
@@ -822,7 +822,7 @@
       padding: 10px 12px;
     }
     .game-header > div:last-child { justify-content: space-between; }
-    .game-info h2 { font-size: 1.8rem; }
+    .game-info h2 { font-size: 3.5rem; }
     .score-display .tricks { font-size: 1.4rem; }
     .score-display .tricks-label { font-size: 0.65rem; }
   }
@@ -2029,10 +2029,9 @@ function initGame(lesson) {
   state.playSequence.push(leadCard);
 
   // Update UI
-  document.getElementById('game-title').textContent =
-    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer];
+  document.getElementById('game-title').textContent = formatContract(lesson.contract);
   document.getElementById('game-subtitle').textContent =
-    lesson.title + ' — Lead: ' + formatCard(leadCard);
+    'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
@@ -2083,10 +2082,9 @@ async function resumeGame(lesson, saved) {
   showPage('game');
 
   const leadCard = state.allPlayedCards[0]?.card || '';
-  document.getElementById('game-title').textContent =
-    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer];
+  document.getElementById('game-title').textContent = formatContract(lesson.contract);
   document.getElementById('game-subtitle').textContent =
-    lesson.title + ' — Lead: ' + (leadCard ? formatCard(leadCard) : '');
+    'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
