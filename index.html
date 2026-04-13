@@ -973,6 +973,47 @@
   .mockdex-entry.unlocked-down .mockdex-text { color: rgba(245,240,232,0.85); }
   .mockdex-entry.unlocked-made .mockdex-text { color: rgba(245,240,232,0.85); }
 
+  /* ── HOLO entries ── */
+  .mockdex-entry.holo.unlocked-down,
+  .mockdex-entry.holo.unlocked-made {
+    background-image: linear-gradient(#0f3a1c, #0f3a1c),
+                      linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-origin: padding-box, border-box;
+    background-clip:  padding-box, border-box;
+    background-size:  auto, 300% 100%;
+    border: 1px solid transparent;
+    animation: holo-border 4s linear infinite;
+  }
+  .mockdex-entry.holo.unlocked-down .mockdex-text,
+  .mockdex-entry.holo.unlocked-made .mockdex-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem;
+  }
+  .holo-badge {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; flex-shrink: 0; margin-left: auto; padding-left: 8px;
+    background: linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-size: 300% 100%; animation: holo-badge-shift 3s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-holo-badge {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-bottom: 12px;
+    background: linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-size: 300% 100%; animation: holo-badge-shift 3s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  @keyframes holo-border {
+    0%   { background-position: 0 0, 0% 50%; }
+    100% { background-position: 0 0, 300% 50%; }
+  }
+  @keyframes holo-badge-shift {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
   /* suit colors inline */
   .s { color: #cccccc; }
   .h { color: #ff6666; }
@@ -1322,6 +1363,7 @@
 <div class="result-overlay" id="result-overlay">
   <div class="result-box" id="result-box">
     <p id="result-heading" style="font-size:0.9rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; opacity:0.7; margin-bottom:16px;">—</p>
+    <p id="result-holo-badge" class="result-holo-badge" style="display:none;">✦ HOLO ROAST</p>
     <p id="result-quip" style="font-family:'Playfair Display',serif; font-size:1.6rem; line-height:1.4; color:var(--cream); margin:0;">—</p>
     <div class="result-buttons">
       <button class="btn btn-secondary" onclick="playAgain()">▶ Play Again</button>
@@ -1445,7 +1487,7 @@ const QUIPS_DOWN = [
   "Even the robot felt bad. Then it remembered it has no feelings.",
   "",
   "",
-  "",
+  "Are we playing the same game here? The game I play is called Bridge. The game you play is called Jumping off the Bridge. Same same but different?",
   "The dummy is not legally allowed to comment. Lucky for you.",
   "",
   "Down. Don't worry, the robot won't tell anyone. It will simply remember. Forever.",
@@ -1464,7 +1506,7 @@ const QUIPS_DOWN = [
   "The hand was described as routine. Your play was anything but.",
   "You squandered your advantages like a millionaire at a casino. Except you weren't winning.",
   "There were three ways to make this contract. You found the fourth way.",
-  "",
+  "You butchered the contract like lcy butchered his p1 art homework. At least he got a D. Your declarer play is an F here.",
   "Down. A post-mortem would be helpful here, though perhaps confronting.",
   "The dummy came down and the hand was over. You just hadn't realised it yet.",
   "At no point was the outcome in doubt. Sadly, you were also not in doubt.",
@@ -1533,7 +1575,7 @@ const QUIPS_DOWN = [
   "You misread the end position. To be fair, the beginning position was also misread.",
   "Down. The defence didn't deserve that. You gave it to them anyway. Very generous.",
   "The robot admires your confidence. It does not admire your card play. Both things are true.",
-  "",
+  "The kids at Ke Xin's school could do better.",
   "Down. Don't worry. The robot has already forgotten. No it hasn't.",
   "Down. The contract was cold, the dummy was helpful, and the result was this.",
   "The robot has a word for that line of play. The word is unprintable in polite company.",
@@ -1547,6 +1589,10 @@ const QUIPS_DOWN = [
   "Down. The dummy's hand was a treasure map. You dug in the wrong spot.",
   "The robot has no desire to make you feel bad. The result is doing that without assistance.",
 ];
+
+// 0-indexed positions of human-written holo roasts/compliments
+const QUIPS_DOWN_HOLO = new Set([2, 8, 9, 10, 12, 14, 24, 29, 87, 91, 98]);
+const QUIPS_MADE_HOLO = new Set([]);
 
 const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const SUIT_NAMES   = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
@@ -2426,10 +2472,15 @@ async function finishGame() {
   document.getElementById('result-heading').textContent =
     diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
   
-  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
   const quipType = diff >= 0 ? 'made' : 'down';
-  const quipIdx  = Math.floor(Math.random() * quipList.length);
-  document.getElementById('result-quip').textContent = quipList[quipIdx];
+  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
+  const holoSet  = diff >= 0 ? QUIPS_MADE_HOLO : QUIPS_DOWN_HOLO;
+  const pool = quipList.map((q, i) => ({q, i})).filter(({q}) => q.length > 0);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const quipIdx = pick.i;
+  const isHolo = holoSet.has(quipIdx);
+  document.getElementById('result-quip').textContent = pick.q;
+  document.getElementById('result-holo-badge').style.display = isHolo ? '' : 'none';
   if (appUser) {
     fetch(API + '/quips/unlock', {
       method: 'POST',
@@ -2909,35 +2960,45 @@ async function loadMockdex() {
   const unlockedMade = new Set(unlocked.made);
 
   // Update summary stats
+  const downTotal = QUIPS_DOWN.filter(q => q).length;
+  const madeTotal = QUIPS_MADE.filter(q => q).length;
   document.getElementById('mdx-down-count').innerHTML =
-    `${unlockedDown.size} <span>/ ${QUIPS_DOWN.length}</span>`;
+    `${unlockedDown.size} <span>/ ${downTotal}</span>`;
   document.getElementById('mdx-made-count').innerHTML =
-    `${unlockedMade.size} <span>/ ${QUIPS_MADE.length}</span>`;
+    `${unlockedMade.size} <span>/ ${madeTotal}</span>`;
   document.getElementById('mdx-down-bar').style.width =
-    Math.round(unlockedDown.size / QUIPS_DOWN.length * 100) + '%';
+    (downTotal ? Math.round(unlockedDown.size / downTotal * 100) : 0) + '%';
   document.getElementById('mdx-made-bar').style.width =
-    Math.round(unlockedMade.size / QUIPS_MADE.length * 100) + '%';
+    (madeTotal ? Math.round(unlockedMade.size / madeTotal * 100) : 0) + '%';
 
-  const renderSection = (title, quips, unlockedSet, typeClass) => {
+  const renderSection = (title, quips, unlockedSet, typeClass, holoSet) => {
+    const pad = String(quips.length).length;
     const entries = quips.map((q, i) => {
+      if (!q) return ''; // skip empty placeholder slots
       const seen = unlockedSet.has(i);
-      return `<div class="mockdex-entry ${seen ? 'unlocked-' + typeClass : 'locked'}">
-        <span class="mockdex-num">#${String(i + 1).padStart(String(quips.length).length, '0')}</span>
+      const isHolo = holoSet.has(i);
+      const holoClass = isHolo ? ' holo' : '';
+      const holoBadge = (isHolo && seen) ? '<span class="holo-badge">✦ HOLO</span>' : '';
+      return `<div class="mockdex-entry${holoClass} ${seen ? 'unlocked-' + typeClass : 'locked'}">
+        <span class="mockdex-num">#${String(i + 1).padStart(pad, '0')}</span>
         <span class="mockdex-text">${seen ? escHtml(q) : '???'}</span>
+        ${holoBadge}
       </div>`;
     }).join('');
+    const visibleTotal   = quips.filter(q => q).length;
+    const unlockedCount  = quips.filter((q, i) => q && unlockedSet.has(i)).length;
     return `<div class="mockdex-section">
       <div class="mockdex-section-header">
         ${title}
-        <span class="mdx-count">${unlockedSet.size} / ${quips.length} unlocked</span>
+        <span class="mdx-count">${unlockedCount} / ${visibleTotal} unlocked</span>
       </div>
       <div class="mockdex-list">${entries}</div>
     </div>`;
   };
 
   document.getElementById('mockdex-container').innerHTML =
-    renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down') +
-    renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made');
+    renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down', QUIPS_DOWN_HOLO) +
+    renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made', QUIPS_MADE_HOLO);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2978,7 +3039,7 @@ async function loadProfile() {
   // Mockédex
   const unlockedMade = (unlocked.made || []).length;
   const unlockedDown = (unlocked.down || []).length;
-  const quipTotal    = QUIPS_MADE.length + QUIPS_DOWN.length;
+  const quipTotal    = QUIPS_MADE.filter(q => q).length + QUIPS_DOWN.filter(q => q).length;
   const mdxPct       = quipTotal > 0 ? Math.round((unlockedMade + unlockedDown) / quipTotal * 100) : 0;
 
   container.innerHTML = `
@@ -3021,11 +3082,11 @@ async function loadProfile() {
       <div class="profile-section-title">Mockédex</div>
       <div class="profile-stats">
         <div class="profile-stat">
-          <div class="profile-stat-value">${unlockedDown} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_DOWN.length}</span></div>
+          <div class="profile-stat-value">${unlockedDown} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_DOWN.filter(q => q).length}</span></div>
           <div class="profile-stat-label">💀 Roasts</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-value">${unlockedMade} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_MADE.length}</span></div>
+          <div class="profile-stat-value">${unlockedMade} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_MADE.filter(q => q).length}</span></div>
           <div class="profile-stat-label">🌸 Compliments</div>
         </div>
       </div>
