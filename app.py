@@ -787,6 +787,15 @@ def get_all_attempts():
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/attempts/<int:aid>', methods=['DELETE'])
+@teacher_required
+def delete_attempt(aid):
+    conn = get_db()
+    conn.execute('DELETE FROM attempts WHERE id=?', (aid,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 @app.route('/api/attempts/my-status', methods=['GET'])
 def my_attempt_status():
     user = current_user()

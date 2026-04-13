@@ -2225,7 +2225,8 @@ async function playCard(player, card, isHuman) {
   state.currentTrick.push({ player, card });
   state.allPlayedCards.push({ player, card });
   state.playSequence.push(card);
-  
+  saveGameProgress(); // persist after every card — fire-and-forget
+
   renderTable();
 
   if (state.currentTrick.length < 4) {
@@ -2513,6 +2514,8 @@ async function loadScores() {
     return;
   }
 
+  const isTeacher = appUser && appUser.role === 'teacher';
+
   container.innerHTML = `<table class="scores-table">
     <thead>
       <tr>
@@ -2523,6 +2526,7 @@ async function loadScores() {
         <th>Score</th>
         <th>Date</th>
         <th>LIN</th>
+        ${isTeacher ? '<th></th>' : ''}
       </tr>
     </thead>
     <tbody>
@@ -2537,9 +2541,16 @@ async function loadScores() {
           <td>${a.score > 0 ? '+' : ''}${a.score}</td>
           <td>${new Date(a.played_at).toLocaleDateString()}</td>
           <td>${a.lin_data ? `<button class="btn-lin" onclick="viewLin(this)" data-lin="${escHtml(a.lin_data)}">🎬 View</button>` : '—'}</td>
+          ${isTeacher ? `<td><button class="delete-btn" title="Delete record" onclick="deleteScore(${a.id})">✕</button></td>` : ''}
         </tr>`).join('')}
     </tbody>
   </table>`;
+}
+
+async function deleteScore(id) {
+  if (!confirm('Delete this score record?')) return;
+  await fetch(API + '/attempts/' + id, { method: 'DELETE' });
+  loadScores();
 }
 
 // ═══════════════════════════════════════════════════════
