@@ -660,6 +660,70 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* ── SUIT PICKER (mobile 2-tap) ── */
+  #suit-picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 150;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #suit-picker-panel {
+    background: var(--green-dark);
+    border: 2px solid var(--gold);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 20px 16px 28px;
+    width: 100%;
+    max-width: 460px;
+  }
+  #suit-picker-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  #suit-picker-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .picker-card {
+    width: 64px !important;
+    height: 90px !important;
+    font-size: 1.1rem !important;
+    margin: 0 !important;
+    cursor: pointer;
+    border: 2px solid var(--gold) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.1s;
+  }
+  .picker-card .card-rank { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+  .picker-card .card-suit { font-size: 1.1rem; line-height: 1; }
+  .picker-card:active { transform: translateY(-6px); }
+  #suit-picker-cancel {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(245,240,232,0.7);
+    border-radius: 6px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  #suit-picker-cancel:active { background: rgba(255,255,255,0.13); }
+
   /* ── BRIDGE TABLE WRAPPER ── */
   .bridge-table-wrap { width: 680px; }
 
@@ -1259,6 +1323,17 @@
 <!-- ══════════════════════════════════════════════════════
      TOAST
 ══════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════
+     SUIT PICKER (mobile 2-tap card selection)
+══════════════════════════════════════════════════════ -->
+<div id="suit-picker-overlay" onclick="closeSuitPicker()">
+  <div id="suit-picker-panel" onclick="event.stopPropagation()">
+    <div id="suit-picker-title"></div>
+    <div id="suit-picker-cards"></div>
+    <button id="suit-picker-cancel" onclick="closeSuitPicker()">✕ Cancel</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1434,7 +1509,28 @@ let state = {
 //  PAGE NAVIGATION
 // ═══════════════════════════════════════════════════════
 
+function recordAbandonedAttempt() {
+  // If the player leaves mid-game after playing at least one card, record as an attempt.
+  // This prevents cheating by exiting when going down.
+  if (!state.lesson || state.allPlayedCards.length === 0 || state.gameOver || !appUser) return;
+  const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+  const declarerTricks = declarerIsNS ? state.nsTricks : state.ewTricks;
+  fetch(API + '/attempts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      lesson_id:    state.lesson.id,
+      tricks_made:  declarerTricks,
+      contract:     state.contract,
+      play_sequence: state.playSequence
+    })
+  }).catch(() => {});
+}
+
 function showPage(name) {
+  // Anti-cheat: record abandoned attempt before leaving game page
+  if (name !== 'game') recordAbandonedAttempt();
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(name + '-page').classList.add('active');
@@ -1959,24 +2055,78 @@ async function getDDSBestCard(player) {
   }
 }
 
+function isMobileDevice() {
+  return window.matchMedia('(pointer: coarse)').matches;
+}
+
 function enablePlayerCards(player) {
   disableAllCards();
-  
+
   const leadSuit = state.currentTrick.length > 0 ? state.currentTrick[0].card[0] : null;
   const hand = state.hands[player];
-  
+
   // Must follow suit if possible
   const mustFollow = leadSuit && hand.some(c => c[0] === leadSuit);
-  
+
   const container = document.getElementById('hand-' + player + '-cards');
   container.querySelectorAll('.card').forEach(el => {
     const cardStr = el.dataset.card;
     const canPlay = !mustFollow || cardStr[0] === leadSuit;
     if (canPlay) {
       el.classList.add('playable');
-      el.onclick = () => humanPlaysCard(player, cardStr);
+      if (isMobileDevice()) {
+        // Mobile: first tap opens suit picker, second tap plays the card
+        el.onclick = () => showSuitPicker(player, cardStr[0]);
+      } else {
+        el.onclick = () => humanPlaysCard(player, cardStr);
+      }
     }
   });
+}
+
+// ── Suit picker (mobile 2-tap) ────────────────────────────
+
+function showSuitPicker(player, suit) {
+  const leadSuit = state.currentTrick.length > 0 ? state.currentTrick[0].card[0] : null;
+  const mustFollow = leadSuit && state.hands[player].some(c => c[0] === leadSuit);
+
+  // All playable cards of this suit
+  const suitCards = state.hands[player]
+    .filter(c => c[0] === suit && (!mustFollow || c[0] === leadSuit))
+    .sort((a, b) => RANK_ORDER.indexOf(a[1]) - RANK_ORDER.indexOf(b[1]));
+
+  if (!suitCards.length) return;
+
+  // Skip picker if only one card — just play it
+  if (suitCards.length === 1) {
+    humanPlaysCard(player, suitCards[0]);
+    return;
+  }
+
+  const sym     = SUIT_SYMBOLS[suit];
+  const fullName = { S:'Spades', H:'Hearts', D:'Diamonds', C:'Clubs' }[suit];
+  const cssName  = SUIT_NAMES[suit];
+
+  document.getElementById('suit-picker-title').textContent = sym + ' ' + fullName;
+  document.getElementById('suit-picker-cards').innerHTML = suitCards.map(card =>
+    `<div class="card picker-card ${cssName}"
+       onclick="pickerSelectCard('${player}','${card}')">
+      <span class="card-rank">${card[1]}</span>
+      <span class="card-suit">${sym}</span>
+    </div>`
+  ).join('');
+
+  const overlay = document.getElementById('suit-picker-overlay');
+  overlay.style.display = 'flex';
+}
+
+function closeSuitPicker() {
+  document.getElementById('suit-picker-overlay').style.display = 'none';
+}
+
+async function pickerSelectCard(player, card) {
+  closeSuitPicker();
+  await humanPlaysCard(player, card);
 }
 
 function disableAllCards() {
