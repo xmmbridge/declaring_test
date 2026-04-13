@@ -1019,6 +1019,89 @@
   .h { color: #ff6666; }
   .d { color: #e07820; }
   .c { color: #aaaaaa; }
+
+  /* ── Auction / Bidding Calculator ───────────────────── */
+  .auction-toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px; cursor: pointer; user-select: none;
+  }
+  .auction-toggle-row input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+  }
+  .auction-toggle-row span {
+    font-size: 0.85rem; color: var(--gold-light); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .auction-section {
+    border: 1px solid rgba(201,168,76,0.2); border-radius: 6px;
+    padding: 16px; margin-bottom: 18px; background: rgba(0,0,0,0.15);
+  }
+  .auction-dealer-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .auction-dealer-row label {
+    font-size: 0.8rem; color: var(--gold-light); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .auction-dealer-row select {
+    padding: 5px 10px; background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.3); border-radius: 4px;
+    color: var(--cream); font-size: 0.85rem;
+  }
+  .auction-table-wrap { margin-bottom: 12px; overflow-x: auto; }
+  .auction-table { border-collapse: collapse; min-width: 240px; font-size: 0.85rem; }
+  .auction-table th {
+    padding: 4px 14px; text-align: center; color: var(--gold);
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+  .auction-table td { padding: 5px 14px; text-align: center; min-width: 55px; }
+  .auction-table td.bid-pass  { color: rgba(245,240,232,0.4); font-style: italic; }
+  .auction-table td.bid-dbl   { color: #e87979; font-weight: 700; }
+  .auction-table td.bid-rdbl  { color: #79b8e8; font-weight: 700; }
+  .auction-table td.bid-bid   { color: var(--cream); font-weight: 600; }
+  .auction-table td.bid-last  { background: rgba(201,168,76,0.12); border-radius: 3px; }
+  .auction-empty {
+    color: rgba(245,240,232,0.3); font-size: 0.8rem; font-style: italic;
+    padding: 8px 0; text-align: center;
+  }
+  .bid-pad { display: flex; flex-direction: column; gap: 6px; }
+  .bid-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+  .bid-col-header {
+    text-align: center; font-size: 0.7rem; color: rgba(245,240,232,0.45);
+    padding-bottom: 2px; font-weight: 600;
+  }
+  .bid-btn {
+    padding: 7px 2px; border: 1px solid rgba(201,168,76,0.2); border-radius: 4px;
+    background: rgba(0,0,0,0.2); color: var(--cream); font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; text-align: center;
+    transition: background 0.12s, border-color 0.12s;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .bid-btn:hover { background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.5); }
+  .bid-btn.suit-C { color: rgba(245,240,232,0.55); }
+  .bid-btn.suit-D { color: #d4895c; }
+  .bid-btn.suit-H { color: #d46060; }
+  .bid-btn.suit-S { color: var(--cream); }
+  .bid-btn.suit-N { color: var(--gold); }
+  .bid-special-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 3px; }
+  .bid-btn.pass-btn { color: rgba(245,240,232,0.5); }
+  .bid-btn.dbl-btn  { color: #e87979; border-color: rgba(232,121,121,0.25); }
+  .bid-btn.dbl-btn:hover  { background: rgba(232,121,121,0.1); border-color: #e87979; }
+  .bid-btn.rdbl-btn { color: #79b8e8; border-color: rgba(121,184,232,0.25); }
+  .bid-btn.rdbl-btn:hover { background: rgba(121,184,232,0.1); border-color: #79b8e8; }
+  .bid-actions-row { display: flex; gap: 6px; }
+  .bid-util-btn {
+    padding: 6px 14px; border: 1px solid rgba(201,168,76,0.25); border-radius: 4px;
+    background: rgba(0,0,0,0.2); color: rgba(245,240,232,0.6); font-size: 0.78rem;
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.12s;
+  }
+  .bid-util-btn:hover { background: rgba(201,168,76,0.08); color: var(--gold-light); }
 </style>
 </head>
 <body>
@@ -1161,6 +1244,38 @@
     <div class="form-row">
       <label>Explanation / Teaching Note (optional)</label>
       <textarea id="explanation" placeholder="What should students learn from this hand? What is the key play?"></textarea>
+    </div>
+
+    <label class="auction-toggle-row" for="auction-toggle">
+      <input type="checkbox" id="auction-toggle" onchange="toggleAuctionSection()">
+      <span>Include Auction / Bidding</span>
+    </label>
+
+    <div class="auction-section" id="auction-section" style="display:none;">
+      <div class="auction-dealer-row">
+        <label for="auction-dealer">Dealer:</label>
+        <select id="auction-dealer" onchange="renderAuction()">
+          <option value="N">North</option>
+          <option value="E">East</option>
+          <option value="S">South</option>
+          <option value="W">West</option>
+        </select>
+      </div>
+      <div class="auction-table-wrap" id="auction-display">
+        <div class="auction-empty">No bids yet — use the pad below.</div>
+      </div>
+      <div class="bid-pad">
+        <div class="bid-grid" id="bid-grid"></div>
+        <div class="bid-special-row">
+          <button class="bid-btn pass-btn" onclick="addBid('p')">Pass</button>
+          <button class="bid-btn dbl-btn"  onclick="addBid('X')">Dbl</button>
+          <button class="bid-btn rdbl-btn" onclick="addBid('XX')">Rdbl</button>
+        </div>
+        <div class="bid-actions-row">
+          <button class="bid-util-btn" onclick="undoBid()">↩ Undo</button>
+          <button class="bid-util-btn" onclick="clearAuction()">✕ Clear</button>
+        </div>
+      </div>
     </div>
 
     <div style="display:flex; gap:12px; margin-top:8px;">
@@ -1900,6 +2015,108 @@ const HAND_INPUT_IDS = [
 ];
 
 // ═══════════════════════════════════════════════════════
+//  AUCTION / BIDDING CALCULATOR
+// ═══════════════════════════════════════════════════════
+
+let auctionBids = [];
+const BID_SUIT_SYMS = { C: '♣', D: '♦', H: '♥', S: '♠', N: 'NT' };
+const BID_SUIT_CLS  = { C: 'suit-C', D: 'suit-D', H: 'suit-H', S: 'suit-S', N: 'suit-N' };
+
+function initBidGrid() {
+  const grid = document.getElementById('bid-grid');
+  if (!grid || grid.innerHTML) return;
+  let html = '';
+  ['C','D','H','S','N'].forEach(s => {
+    html += `<div class="bid-col-header">${BID_SUIT_SYMS[s]}</div>`;
+  });
+  for (let lvl = 1; lvl <= 7; lvl++) {
+    ['C','D','H','S','N'].forEach(s => {
+      const sym = s === 'N' ? 'NT' : BID_SUIT_SYMS[s];
+      html += `<button class="bid-btn ${BID_SUIT_CLS[s]}" onclick="addBid('${lvl}${s}')">${lvl}${sym}</button>`;
+    });
+  }
+  grid.innerHTML = html;
+}
+
+function toggleAuctionSection() {
+  const show = document.getElementById('auction-toggle').checked;
+  document.getElementById('auction-section').style.display = show ? '' : 'none';
+  if (show) initBidGrid();
+}
+
+function renderAuction() {
+  const dealer = document.getElementById('auction-dealer').value;
+  const seats = ['N','E','S','W'];
+  const dealerIdx = seats.indexOf(dealer);
+  const el = document.getElementById('auction-display');
+
+  if (auctionBids.length === 0) {
+    el.innerHTML = '<div class="auction-empty">No bids yet — use the pad below.</div>';
+    return;
+  }
+
+  const fmtBid = (bid, isLast) => {
+    let cls, text;
+    if (bid === 'p')  { cls = 'bid-pass'; text = 'pass'; }
+    else if (bid === 'X')  { cls = 'bid-dbl';  text = 'Dbl'; }
+    else if (bid === 'XX') { cls = 'bid-rdbl'; text = 'Rdbl'; }
+    else {
+      cls = 'bid-bid';
+      const s = bid.slice(1);
+      text = bid[0] + (s === 'N' ? 'NT' : BID_SUIT_SYMS[s]);
+    }
+    if (isLast) cls += ' bid-last';
+    return `<td class="${cls}">${text}</td>`;
+  };
+
+  let html = '<table class="auction-table"><thead><tr>';
+  seats.forEach((s, i) => {
+    html += `<th>${s}${i === dealerIdx ? ' *' : ''}</th>`;
+  });
+  html += '</tr></thead><tbody><tr>';
+
+  let col = dealerIdx;
+  for (let i = 0; i < dealerIdx; i++) { html += '<td></td>'; }
+
+  auctionBids.forEach((bid, idx) => {
+    if (col === 4) { html += '</tr><tr>'; col = 0; }
+    html += fmtBid(bid, idx === auctionBids.length - 1);
+    col++;
+  });
+  while (col > 0 && col < 4) { html += '<td></td>'; col++; }
+
+  html += '</tr></tbody></table>';
+  el.innerHTML = html;
+}
+
+function addBid(bid) { auctionBids.push(bid); renderAuction(); }
+function undoBid()   { if (auctionBids.length) { auctionBids.pop(); renderAuction(); } }
+function clearAuction() { auctionBids = []; renderAuction(); }
+
+function getAuctionData() {
+  if (!document.getElementById('auction-toggle').checked || !auctionBids.length) return '';
+  return JSON.stringify({ dealer: document.getElementById('auction-dealer').value, bids: auctionBids });
+}
+
+function setAuctionData(str) {
+  if (!str) {
+    document.getElementById('auction-toggle').checked = false;
+    document.getElementById('auction-section').style.display = 'none';
+    auctionBids = [];
+    return;
+  }
+  try {
+    const d = JSON.parse(str);
+    auctionBids = d.bids || [];
+    document.getElementById('auction-dealer').value = d.dealer || 'N';
+    document.getElementById('auction-toggle').checked = true;
+    document.getElementById('auction-section').style.display = '';
+    initBidGrid();
+    renderAuction();
+  } catch(e) { auctionBids = []; }
+}
+
+// ═══════════════════════════════════════════════════════
 //  CREATE LESSON
 // ═══════════════════════════════════════════════════════
 
@@ -1930,7 +2147,7 @@ async function createLesson() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead })
+      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead, auction: getAuctionData() })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Server error');
@@ -1961,6 +2178,7 @@ async function editLesson(id) {
   document.getElementById('contract').value = lesson.contract;
   document.getElementById('declarer').value = lesson.declarer;
   document.getElementById('lead').value = lesson.lead;
+  setAuctionData(lesson.auction || '');
 
   document.getElementById('create-page-title').textContent = 'Edit Lesson';
   document.getElementById('save-lesson-btn').textContent = '💾 Update Lesson';
@@ -1973,6 +2191,7 @@ function newLesson() {
   document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
   ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
     .forEach(id => document.getElementById(id).value = '');
+  setAuctionData('');
   showPage('create');
 }
 

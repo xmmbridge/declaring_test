@@ -133,6 +133,7 @@ def init_db():
         'ALTER TABLE attempts ADD COLUMN user_id   INTEGER',
         'ALTER TABLE attempts ADD COLUMN lin_data  TEXT DEFAULT ""',
         'ALTER TABLE topics   ADD COLUMN homework  INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE lessons  ADD COLUMN auction   TEXT DEFAULT ""',
     ]:
         try:
             conn.execute(stmt)
@@ -186,14 +187,27 @@ def generate_lin(lesson, play_sequence, student_name):
 
     pn = f"{name('S')},{name('W')},{name('N')},{name('E')}"
 
-    # md: dealer=1 (South), then S/W/N hands (E is computed by viewer)
-    md = f"1{pbn_to_lin(s_hand)},{pbn_to_lin(w_hand)},{pbn_to_lin(n_hand)}"
+    # Auction for LIN: use stored auction if present, else synthesise
+    lin_dealer_code = '1'  # default: South deals
+    if lesson.get('auction'):
+        try:
+            aut = json.loads(lesson['auction'])
+            dealer_codes = {'S': '1', 'W': '2', 'N': '3', 'E': '4'}
+            lin_dealer_code = dealer_codes.get(aut.get('dealer', 'S'), '1')
+            mb_str = ''.join(f'mb|{b}|' for b in aut.get('bids', [])) + 'pg||'
+        except Exception:
+            pos_of = {'S': 0, 'W': 1, 'N': 2, 'E': 3}
+            level, suit = contract[0], contract[1]
+            synth = ['p'] * pos_of[declarer] + [f"{level}{suit}", 'p', 'p', 'p']
+            mb_str = ''.join(f'mb|{c}|' for c in synth) + 'pg||'
+    else:
+        pos_of = {'S': 0, 'W': 1, 'N': 2, 'E': 3}
+        level, suit = contract[0], contract[1]
+        synth = ['p'] * pos_of[declarer] + [f"{level}{suit}", 'p', 'p', 'p']
+        mb_str = ''.join(f'mb|{c}|' for c in synth) + 'pg||'
 
-    # Synthetic auction: passes up to declarer, then contract bid, then 3 passes
-    pos_of = {'S': 0, 'W': 1, 'N': 2, 'E': 3}
-    level, suit = contract[0], contract[1]
-    auction = ['p'] * pos_of[declarer] + [f"{level}{suit}", 'p', 'p', 'p']
-    mb_str  = ''.join(f'mb|{c}|' for c in auction) + 'pg||'
+    # md: hands in S/W/N order (E inferred), dealer digit from auction
+    md = f"{lin_dealer_code}{pbn_to_lin(s_hand)},{pbn_to_lin(w_hand)},{pbn_to_lin(n_hand)}"
 
     # Play cards: group into tricks of 4
     play_str = ''
@@ -506,10 +520,10 @@ def create_lesson():
         print('DDS par error:', e)
     conn = get_db()
     cur  = conn.execute(
-        'INSERT INTO lessons (title,topic,technique,explanation,pbn,contract,declarer,lead,par_tricks) '
-        'VALUES (?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO lessons (title,topic,technique,explanation,pbn,contract,declarer,lead,par_tricks,auction) '
+        'VALUES (?,?,?,?,?,?,?,?,?,?)',
         (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
-         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks))
+         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, d.get('auction','')))
     lid = cur.lastrowid
     conn.commit(); conn.close()
     return jsonify({'id': lid, 'par_tricks': par_tricks}), 201
@@ -534,9 +548,9 @@ def update_lesson(lid):
         print('DDS par error:', e)
     conn = get_db()
     conn.execute(
-        'UPDATE lessons SET title=?,topic=?,technique=?,explanation=?,pbn=?,contract=?,declarer=?,lead=?,par_tricks=? WHERE id=?',
+        'UPDATE lessons SET title=?,topic=?,technique=?,explanation=?,pbn=?,contract=?,declarer=?,lead=?,par_tricks=?,auction=? WHERE id=?',
         (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
-         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, lid))
+         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, d.get('auction',''), lid))
     conn.commit(); conn.close()
     return jsonify({'id': lid, 'par_tricks': par_tricks})
 
