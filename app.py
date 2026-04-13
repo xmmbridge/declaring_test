@@ -820,6 +820,89 @@ def my_attempt_status():
             status[lid]['first_try'] = (status[lid]['attempts'] == 1)
     return jsonify(status)
 
+@app.route('/api/teacher/students', methods=['GET'])
+@teacher_required
+def teacher_students():
+    conn = get_db()
+    groups = conn.execute('SELECT id, name FROM groups ORDER BY name').fetchall()
+
+    def student_stats(student_rows, hw_ids):
+        total = len(hw_ids)
+        result = []
+        for s in student_rows:
+            attempts = conn.execute(
+                'SELECT lesson_id, result FROM attempts WHERE user_id=? ORDER BY id ASC',
+                (s['id'],)
+            ).fetchall()
+            per_lesson = {}
+            for a in attempts:
+                lid = a['lesson_id']
+                if lid not in per_lesson:
+                    per_lesson[lid] = {'cnt': 0, 'made': False, 'first_try': False}
+                per_lesson[lid]['cnt'] += 1
+                if 'Made' in a['result'] and not per_lesson[lid]['made']:
+                    per_lesson[lid]['made'] = True
+                    per_lesson[lid]['first_try'] = (per_lesson[lid]['cnt'] == 1)
+            cnt_none = cnt_down = cnt_made = cnt_first = 0
+            for lid in hw_ids:
+                st = per_lesson.get(lid)
+                if not st:              cnt_none  += 1
+                elif not st['made']:    cnt_down  += 1
+                elif st['first_try']:   cnt_first += 1
+                else:                   cnt_made  += 1
+            pct = round((cnt_made + cnt_first) / total * 100) if total else 0
+            result.append({
+                'id': s['id'], 'username': s['username'],
+                'hw_total': total, 'hw_none': cnt_none, 'hw_down': cnt_down,
+                'hw_made': cnt_made, 'hw_first': cnt_first, 'pct': pct
+            })
+        return result
+
+    output = []
+    for group in groups:
+        gid = group['id']
+        student_rows = conn.execute(
+            'SELECT u.id, u.username FROM users u '
+            'JOIN user_groups ug ON u.id=ug.user_id '
+            'WHERE ug.group_id=? AND u.role="student" ORDER BY u.username',
+            (gid,)
+        ).fetchall()
+        hw_rows = conn.execute(
+            'SELECT l.id FROM lessons l '
+            'JOIN topics t ON t.name=l.topic '
+            'WHERE t.homework=1 AND ('
+            '  t.restricted=0 OR EXISTS ('
+            '    SELECT 1 FROM topic_groups tg WHERE tg.topic_name=t.name AND tg.group_id=?'
+            '  )'
+            ')', (gid,)
+        ).fetchall()
+        hw_ids = {r['id'] for r in hw_rows}
+        output.append({
+            'id': gid, 'name': group['name'],
+            'students': student_stats(student_rows, hw_ids)
+        })
+
+    # Ungrouped students
+    ungrouped = conn.execute(
+        'SELECT u.id, u.username FROM users u '
+        'WHERE u.role="student" AND u.id NOT IN (SELECT DISTINCT user_id FROM user_groups) '
+        'ORDER BY u.username'
+    ).fetchall()
+    if ungrouped:
+        hw_rows = conn.execute(
+            'SELECT l.id FROM lessons l '
+            'JOIN topics t ON t.name=l.topic '
+            'WHERE t.homework=1 AND t.restricted=0'
+        ).fetchall()
+        hw_ids = {r['id'] for r in hw_rows}
+        output.append({
+            'id': None, 'name': 'Ungrouped',
+            'students': student_stats(ungrouped, hw_ids)
+        })
+
+    conn.close()
+    return jsonify(output)
+
 # ── Quip unlocks (Mockédex) ───────────────────────────────────────────────────
 
 @app.route('/api/quips/unlock', methods=['POST'])

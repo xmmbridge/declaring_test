@@ -229,6 +229,40 @@
   .profile-progress-fill { height:100%; border-radius:4px; transition:width 0.5s ease;
                            background:linear-gradient(90deg,var(--gold),var(--gold-light)); }
 
+  /* ── STUDENTS OVERVIEW ── */
+  .students-group {
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px; margin-bottom: 20px; overflow: hidden;
+  }
+  .students-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: rgba(201,168,76,0.1);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+  .students-group-name {
+    font-family: 'Playfair Display', serif; font-size: 1.1rem;
+    color: var(--gold); font-weight: 600;
+  }
+  .students-group-count { font-size: 0.8rem; color: rgba(245,240,232,0.5); }
+  .students-table { width: 100%; border-collapse: collapse; }
+  .students-table th {
+    padding: 8px 12px; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.5px; color: rgba(245,240,232,0.45);
+    background: rgba(0,0,0,0.2); text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .students-table th.center { text-align: center; }
+  .students-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .students-table tr:last-child td { border-bottom: none; }
+  .students-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .stu-name { font-weight: 600; color: var(--cream); }
+  .stu-stat { text-align: center; font-weight: 600; font-size: 0.9rem; }
+  .stu-pct-cell { min-width: 130px; }
+  .stu-pct-label { font-size: 0.8rem; color: rgba(245,240,232,0.7); margin-bottom: 3px; }
+  .stu-bar-track { background: rgba(255,255,255,0.1); border-radius: 3px; height: 6px; }
+  .stu-bar-fill { background: linear-gradient(90deg,var(--gold),var(--gold-light));
+                  border-radius: 3px; height: 6px; min-width: 2px; }
+
   /* ── FORMS ── */
   .form-card {
     background: rgba(255,255,255,0.05);
@@ -359,10 +393,11 @@
   }
   .game-info h2 {
     font-family: 'Playfair Display', serif;
-    font-size: 1.2rem;
+    font-size: 3rem;
     color: var(--gold);
+    line-height: 1.1;
   }
-  .game-info p { font-size: 0.85rem; color: rgba(245,240,232,0.7); margin-top: 4px; }
+  .game-info p { font-size: 0.85rem; color: rgba(245,240,232,0.7); margin-top: 6px; }
   .score-display { text-align: right; }
   .score-display .tricks {
     font-family: 'Playfair Display', serif;
@@ -411,7 +446,7 @@
   }
   .card.side {
     transform: rotate(90deg);
-    margin: -10px 0;
+    margin: -14px 0;
   }
 
   .hand-label {
@@ -435,8 +470,8 @@
 
   /* Individual card */
   .card {
-    width: 44px;
-    height: 64px;
+    width: 52px;
+    height: 72px;
     background: var(--card-bg);
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -444,11 +479,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     cursor: default;
     transition: all 0.15s;
-    margin: 0 -6px;
+    margin: 0 -8px;
     position: relative;
     box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
     user-select: none;
@@ -475,8 +510,8 @@
   }
   .card.played-card { opacity: 0.4; }
 
-  .card-rank { font-size: 0.85rem; line-height: 1; }
-  .card-suit { font-size: 0.8rem; line-height: 1; }
+  .card-rank { font-size: 1.1rem; line-height: 1; }
+  .card-suit { font-size: 0.95rem; line-height: 1; }
   .card.spades .card-rank, .card.spades .card-suit { color: var(--spades); }
   .card.hearts .card-rank, .card.hearts .card-suit { color: var(--hearts); }
   .card.diamonds .card-rank, .card.diamonds .card-suit { color: var(--diamonds); }
@@ -518,8 +553,8 @@
   .trick-slot.west { grid-area: west; }
 
   .trick-card {
-    width: 46px;
-    height: 66px;
+    width: 54px;
+    height: 74px;
     background: var(--card-bg);
     border: 2px solid #ddd;
     border-radius: 5px;
@@ -527,7 +562,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 700;
     box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
   }
@@ -787,7 +822,7 @@
       padding: 10px 12px;
     }
     .game-header > div:last-child { justify-content: space-between; }
-    .game-info h2 { font-size: 1rem; }
+    .game-info h2 { font-size: 1.8rem; }
     .score-display .tricks { font-size: 1.4rem; }
     .score-display .tricks-label { font-size: 0.65rem; }
   }
@@ -954,6 +989,7 @@
     <button class="nav-tab teacher-only" id="tab-create" onclick="newLesson()" style="display:none">➕ Create Lesson</button>
     <button class="nav-tab auth-only" id="tab-scores" onclick="showPage('scores')" style="display:none">📊 Scores</button>
     <button class="nav-tab teacher-only" id="tab-users" onclick="showPage('users')" style="display:none">👥 Manage Users</button>
+    <button class="nav-tab teacher-only" id="tab-students" onclick="showPage('students')" style="display:none">🎓 Students</button>
     <button class="nav-tab auth-only" id="tab-mockdex" onclick="showPage('mockdex')" style="display:none" title="Your unlocked roasts &amp; compliments">📖 Mockédex</button>
     <button class="nav-tab auth-only" id="tab-profile" onclick="showPage('profile')" style="display:none">👤 Profile</button>
   </div>
@@ -1333,6 +1369,16 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════
+     PAGE: STUDENTS (teacher overview)
+══════════════════════════════════════════════════════ -->
+<div class="page" id="students-page">
+  <div class="page-title">Student Overview</div>
+  <div id="students-container">
+    <div class="empty-state"><div class="icon">🎓</div><p>Loading…</p></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
      TOAST
 ══════════════════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════════════════
@@ -1578,14 +1624,15 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(name + '-page').classList.add('active');
-  const tabId = { lessons:'tab-lessons', scores:'tab-scores', mockdex:'tab-mockdex', profile:'tab-profile' };
+  const tabId = { lessons:'tab-lessons', scores:'tab-scores', mockdex:'tab-mockdex', profile:'tab-profile', students:'tab-students' };
   if (tabId[name]) document.getElementById(tabId[name])?.classList.add('active');
 
-  if (name === 'lessons') loadLessons();
-  if (name === 'scores')  { if (!appUser) { showPage('lessons'); return; } loadLessons(true).then(() => loadScores()); }
-  if (name === 'users')   loadUsers();
-  if (name === 'mockdex') loadMockdex();
-  if (name === 'profile') loadProfile();
+  if (name === 'lessons')  loadLessons();
+  if (name === 'scores')   { if (!appUser) { showPage('lessons'); return; } loadLessons(true).then(() => loadScores()); }
+  if (name === 'users')    loadUsers();
+  if (name === 'mockdex')  loadMockdex();
+  if (name === 'profile')  loadProfile();
+  if (name === 'students') loadStudents();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1982,10 +2029,10 @@ function initGame(lesson) {
   state.playSequence.push(leadCard);
 
   // Update UI
-  document.getElementById('game-title').textContent = lesson.title;
+  document.getElementById('game-title').textContent =
+    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer];
   document.getElementById('game-subtitle').textContent =
-    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer] +
-    ' — Lead: ' + formatCard(leadCard);
+    lesson.title + ' — Lead: ' + formatCard(leadCard);
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
@@ -2036,10 +2083,10 @@ async function resumeGame(lesson, saved) {
   showPage('game');
 
   const leadCard = state.allPlayedCards[0]?.card || '';
-  document.getElementById('game-title').textContent = lesson.title;
+  document.getElementById('game-title').textContent =
+    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer];
   document.getElementById('game-subtitle').textContent =
-    formatContract(lesson.contract) + ' by ' + PLAYER_NAMES[lesson.declarer] +
-    ' — Lead: ' + (leadCard ? formatCard(leadCard) : '');
+    lesson.title + ' — Lead: ' + (leadCard ? formatCard(leadCard) : '');
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
@@ -2623,11 +2670,12 @@ function updateAuthUI() {
   }
 
   // Show/hide role-gated nav tabs
-  document.getElementById('tab-create').style.display  = isTeacher ? '' : 'none';
-  document.getElementById('tab-users').style.display   = isTeacher ? '' : 'none';
-  document.getElementById('tab-scores').style.display  = appUser   ? '' : 'none';
-  document.getElementById('tab-mockdex').style.display = appUser   ? '' : 'none';
-  document.getElementById('tab-profile').style.display = appUser   ? '' : 'none';
+  document.getElementById('tab-create').style.display   = isTeacher ? '' : 'none';
+  document.getElementById('tab-users').style.display    = isTeacher ? '' : 'none';
+  document.getElementById('tab-students').style.display = isTeacher ? '' : 'none';
+  document.getElementById('tab-scores').style.display   = appUser   ? '' : 'none';
+  document.getElementById('tab-mockdex').style.display  = appUser   ? '' : 'none';
+  document.getElementById('tab-profile').style.display  = appUser   ? '' : 'none';
 }
 
 function showLogin() {
@@ -2978,6 +3026,66 @@ async function loadProfile() {
         <div class="profile-progress-fill" style="width:${mdxPct}%"></div>
       </div>
     </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  STUDENTS OVERVIEW
+// ═══════════════════════════════════════════════════════
+
+async function loadStudents() {
+  if (!appUser || appUser.role !== 'teacher') return;
+  const container = document.getElementById('students-container');
+  container.innerHTML = `<div class="empty-state"><div class="icon">🎓</div><p>Loading…</p></div>`;
+
+  const res = await fetch(API + '/teacher/students');
+  if (!res.ok) {
+    container.innerHTML = `<div class="empty-state"><p>Could not load student data.</p></div>`;
+    return;
+  }
+  const groups = await res.json();
+
+  const populated = groups.filter(g => g.students.length > 0);
+  if (!populated.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No students found.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = populated.map(g => {
+    const rows = g.students.map(s => `
+      <tr>
+        <td class="stu-name">${escHtml(s.username)}</td>
+        <td class="stu-stat">${s.hw_total}</td>
+        <td class="stu-stat" style="color:rgba(245,240,232,0.4)">${s.hw_none}</td>
+        <td class="stu-stat" style="color:#f08080">${s.hw_down}</td>
+        <td class="stu-stat" style="color:#80e080">${s.hw_made}</td>
+        <td class="stu-stat" style="color:var(--gold)">${s.hw_first}</td>
+        <td class="stu-pct-cell">
+          <div class="stu-pct-label">${s.pct}%</div>
+          <div class="stu-bar-track"><div class="stu-bar-fill" style="width:${s.pct}%"></div></div>
+        </td>
+      </tr>`).join('');
+    return `
+      <div class="students-group">
+        <div class="students-group-header">
+          <span class="students-group-name">${escHtml(g.name)}</span>
+          <span class="students-group-count">${g.students.length} student${g.students.length !== 1 ? 's' : ''}</span>
+        </div>
+        <table class="students-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th class="center" title="Total homework lessons">Total HW</th>
+              <th class="center" title="Not attempted">—</th>
+              <th class="center" title="Down">▼ Down</th>
+              <th class="center" title="Made">✓ Made</th>
+              <th class="center" title="First try">★ 1st Try</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════
