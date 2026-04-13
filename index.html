@@ -204,6 +204,31 @@
     border: 1px solid var(--gold);
   }
 
+  /* ── PROFILE ── */
+  .profile-header { display:flex; align-items:baseline; gap:12px; margin-bottom:28px; }
+  .profile-username { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--cream); }
+  .profile-role { font-size:0.75rem; background:rgba(255,255,255,0.1); border-radius:8px;
+                  padding:3px 10px; color:rgba(245,240,232,0.5); text-transform:uppercase; }
+  .profile-section { margin-bottom:36px; }
+  .profile-section-title {
+    font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--gold);
+    padding-bottom:8px; border-bottom:1px solid rgba(201,168,76,0.25); margin-bottom:18px;
+  }
+  .profile-stats { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .profile-stat {
+    background:rgba(255,255,255,0.06); border:1px solid rgba(201,168,76,0.2);
+    border-radius:8px; padding:14px 20px; text-align:center; min-width:110px;
+  }
+  .profile-stat-value { font-size:1.6rem; font-weight:700; color:var(--cream); line-height:1; margin-bottom:4px; }
+  .profile-stat-label { font-size:0.73rem; color:rgba(245,240,232,0.5); text-transform:uppercase; letter-spacing:0.04em; }
+  .profile-completion { font-size:0.88rem; color:rgba(245,240,232,0.7); margin-bottom:8px; }
+  .profile-progress-track {
+    height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;
+    max-width:400px; margin-top:6px;
+  }
+  .profile-progress-fill { height:100%; border-radius:4px; transition:width 0.5s ease;
+                           background:linear-gradient(90deg,var(--gold),var(--gold-light)); }
+
   /* ── FORMS ── */
   .form-card {
     background: rgba(255,255,255,0.05);
@@ -798,6 +823,7 @@
     <button class="nav-tab" id="tab-scores" onclick="showPage('scores')">📊 Scores</button>
     <button class="nav-tab teacher-only" id="tab-users" onclick="showPage('users')" style="display:none">👥 Manage Users</button>
     <button class="nav-tab auth-only" id="tab-mockdex" onclick="showPage('mockdex')" style="display:none" title="Your unlocked roasts &amp; compliments">📖 Mockédex</button>
+    <button class="nav-tab auth-only" id="tab-profile" onclick="showPage('profile')" style="display:none">👤 Profile</button>
   </div>
   <div class="auth-section" id="auth-section">
     <button class="btn btn-secondary btn-sm" onclick="showLogin()">Login</button>
@@ -940,11 +966,19 @@
 ══════════════════════════════════════════════════════ -->
 <div class="page" id="scores-page">
   <div class="page-title">Score Records</div>
-  <div class="form-row" style="max-width:300px; margin-bottom:20px;">
-    <label>Filter by Lesson</label>
-    <select id="score-filter" onchange="loadScores()">
-      <option value="">All Lessons</option>
-    </select>
+  <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end; margin-bottom:20px;">
+    <div class="form-row" style="margin:0; min-width:200px;">
+      <label>Filter by Folder</label>
+      <select id="score-folder-filter" onchange="onFolderFilterChange()">
+        <option value="">All Folders</option>
+      </select>
+    </div>
+    <div class="form-row" style="margin:0; min-width:200px;">
+      <label>Filter by Lesson</label>
+      <select id="score-filter" onchange="loadScores()">
+        <option value="">All Lessons</option>
+      </select>
+    </div>
   </div>
   <div id="scores-container">
     <div class="empty-state"><div class="icon">📊</div><p>No scores yet.</p></div>
@@ -1155,6 +1189,16 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════
+     PAGE: PROFILE
+══════════════════════════════════════════════════════ -->
+<div class="page" id="profile-page">
+  <div class="page-title">My Profile</div>
+  <div id="profile-container">
+    <div class="empty-state"><div class="icon">👤</div><p>Loading…</p></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
      TOAST
 ══════════════════════════════════════════════════════ -->
 <div class="toast" id="toast"></div>
@@ -1303,6 +1347,9 @@ const LEFT_OF      = { N:'W', E:'N', S:'E', W:'S' };  // who leads: left of decl
 const NEXT_PLAYER  = { N:'E', E:'S', S:'W', W:'N' };  // clockwise
 
 let editingLessonId = null;
+let allLessonsCache = [];
+let topicMetaCache  = {};
+let scoresGeneration = 0;
 
 // Game state
 let state = {
@@ -1333,13 +1380,14 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(name + '-page').classList.add('active');
-  const tabId = { lessons:'tab-lessons', scores:'tab-scores', mockdex:'tab-mockdex' };
+  const tabId = { lessons:'tab-lessons', scores:'tab-scores', mockdex:'tab-mockdex', profile:'tab-profile' };
   if (tabId[name]) document.getElementById(tabId[name])?.classList.add('active');
 
   if (name === 'lessons') loadLessons();
-  if (name === 'scores')  { loadLessons(true); loadScores(); }
+  if (name === 'scores')  loadLessons(true).then(() => loadScores());
   if (name === 'users')   loadUsers();
   if (name === 'mockdex') loadMockdex();
+  if (name === 'profile') loadProfile();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1490,9 +1538,22 @@ async function loadLessons(forScores=false) {
     grid.innerHTML = html || `<div class="empty-state"><div class="icon">🃏</div>
       <p>No lessons yet. Create one to get started!</p></div>`;
   } else {
-    const sel = document.getElementById('score-filter');
-    sel.innerHTML = '<option value="">All Lessons</option>' +
-      lessons.map(l => `<option value="${l.id}">${escHtml(l.title)}</option>`).join('');
+    allLessonsCache = lessons;
+    topicMetaCache  = topicMeta;
+
+    // Populate folder filter
+    const folders = [...new Set(lessons.map(l => l.topic).filter(Boolean))].sort();
+    const folderSel = document.getElementById('score-folder-filter');
+    const prevFolder = folderSel.value;
+    folderSel.innerHTML = '<option value="">All Folders</option>' +
+      folders.map(f => `<option value="${escHtml(f)}" ${f === prevFolder ? 'selected' : ''}>${escHtml(f)}</option>`).join('');
+
+    // Populate lesson filter (scoped to current folder selection)
+    const filtered = prevFolder ? lessons.filter(l => l.topic === prevFolder) : lessons;
+    const lessonSel = document.getElementById('score-filter');
+    const prevLesson = lessonSel.value;
+    lessonSel.innerHTML = '<option value="">All Lessons</option>' +
+      filtered.map(l => `<option value="${l.id}" ${String(l.id) === prevLesson ? 'selected' : ''}>${escHtml(l.title)}</option>`).join('');
   }
 }
 
@@ -2125,11 +2186,19 @@ function formatCard(cardStr) {
 //  SCORES
 // ═══════════════════════════════════════════════════════
 
+function onFolderFilterChange() {
+  const folder = document.getElementById('score-folder-filter').value;
+  const filtered = folder ? allLessonsCache.filter(l => l.topic === folder) : allLessonsCache;
+  const sel = document.getElementById('score-filter');
+  sel.innerHTML = '<option value="">All Lessons</option>' +
+    filtered.map(l => `<option value="${l.id}">${escHtml(l.title)}</option>`).join('');
+  loadScores();
+}
+
 async function loadScores() {
+  const gen = ++scoresGeneration;
   const lessonId = document.getElementById('score-filter').value;
-  let url = lessonId
-    ? API + '/attempts/lesson/' + lessonId
-    : API + '/attempts/lesson/0'; // we'll need all
+  const folder   = document.getElementById('score-folder-filter').value;
 
   // Fetch all lessons and gather attempts
   let attempts = [];
@@ -2137,16 +2206,18 @@ async function loadScores() {
     const res = await fetch(API + '/attempts/lesson/' + lessonId);
     attempts = await res.json();
   } else {
-    // Get all lessons then all their attempts
-    const lesRes = await fetch(API + '/lessons');
-    const lessons = await lesRes.json();
-    for (const l of lessons) {
-      const aRes = await fetch(API + '/attempts/lesson/' + l.id);
-      const a = await aRes.json();
+    // Determine which lessons to pull attempts for
+    let scope = allLessonsCache.length ? allLessonsCache : await fetch(API + '/lessons').then(r => r.json());
+    if (folder) scope = scope.filter(l => l.topic === folder);
+    for (const l of scope) {
+      const a = await fetch(API + '/attempts/lesson/' + l.id).then(r => r.json());
       attempts = attempts.concat(a.map(x => ({ ...x, lesson_title: l.title })));
     }
     attempts.sort((a,b) => new Date(b.played_at) - new Date(a.played_at));
   }
+
+  // Discard if a newer loadScores() call has started
+  if (gen !== scoresGeneration) return;
 
   const container = document.getElementById('scores-container');
   if (!attempts.length) {
@@ -2225,7 +2296,7 @@ function updateAuthUI() {
 
   if (appUser) {
     section.innerHTML = `
-      <span class="auth-user">${escHtml(appUser.username)}</span>
+      <span class="auth-user" style="cursor:pointer;" onclick="showPage('profile')">${escHtml(appUser.username)}</span>
       <span class="auth-role">${escHtml(appUser.role)}</span>
       <button class="btn btn-secondary btn-sm" onclick="doLogout()">Logout</button>`;
   } else {
@@ -2236,6 +2307,7 @@ function updateAuthUI() {
   document.getElementById('tab-create').style.display  = isTeacher ? '' : 'none';
   document.getElementById('tab-users').style.display   = isTeacher ? '' : 'none';
   document.getElementById('tab-mockdex').style.display = appUser   ? '' : 'none';
+  document.getElementById('tab-profile').style.display = appUser   ? '' : 'none';
 }
 
 function showLogin() {
@@ -2490,6 +2562,102 @@ async function loadMockdex() {
   document.getElementById('mockdex-container').innerHTML =
     renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down') +
     renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROFILE
+// ═══════════════════════════════════════════════════════
+
+async function loadProfile() {
+  if (!appUser) return;
+  const container = document.getElementById('profile-container');
+  container.innerHTML = `<div class="empty-state"><div class="icon">👤</div><p>Loading…</p></div>`;
+
+  const [lesRes, topRes, statusRes, quipRes] = await Promise.all([
+    fetch(API + '/lessons'),
+    fetch(API + '/topics'),
+    fetch(API + '/attempts/my-status'),
+    fetch(API + '/quips/unlocked'),
+  ]);
+  const lessons  = await lesRes.json();
+  const topMeta  = {};
+  (await topRes.json()).forEach(t => { topMeta[t.topic] = t; });
+  const myStatus = await statusRes.json();
+  const unlocked = await quipRes.json();
+
+  // Homework lessons visible to this user
+  const hwLessons = lessons.filter(l => l.topic && topMeta[l.topic] && topMeta[l.topic].homework);
+  const total = hwLessons.length;
+
+  let cntNone = 0, cntDown = 0, cntMade = 0, cntFirst = 0;
+  for (const l of hwLessons) {
+    const s = myStatus[String(l.id)];
+    if (!s)            cntNone++;
+    else if (!s.made)  cntDown++;
+    else if (s.first_try) cntFirst++;
+    else               cntMade++;
+  }
+  const donePct = total > 0 ? Math.round((cntMade + cntFirst) / total * 100) : 0;
+
+  // Mockédex
+  const unlockedMade = (unlocked.made || []).length;
+  const unlockedDown = (unlocked.down || []).length;
+  const quipTotal    = QUIPS_MADE.length + QUIPS_DOWN.length;
+  const mdxPct       = quipTotal > 0 ? Math.round((unlockedMade + unlockedDown) / quipTotal * 100) : 0;
+
+  container.innerHTML = `
+    <div class="profile-header">
+      <span class="profile-username">${escHtml(appUser.username)}</span>
+      <span class="profile-role">${escHtml(appUser.role)}</span>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Homework Progress</div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-value">${total}</div>
+          <div class="profile-stat-label">Total</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value" style="color:rgba(245,240,232,0.4);">${cntNone}</div>
+          <div class="profile-stat-label">Not Attempted</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value" style="color:#f08080;">${cntDown}</div>
+          <div class="profile-stat-label">▼ Down</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value" style="color:#80e080;">${cntMade}</div>
+          <div class="profile-stat-label">✓ Made</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value" style="color:var(--gold);">${cntFirst}</div>
+          <div class="profile-stat-label">★ First Try</div>
+        </div>
+      </div>
+      <div class="profile-completion">${donePct}% complete (${cntMade + cntFirst} / ${total})</div>
+      <div class="profile-progress-track">
+        <div class="profile-progress-fill" style="width:${donePct}%"></div>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-title">Mockédex</div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-value">${unlockedDown} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_DOWN.length}</span></div>
+          <div class="profile-stat-label">💀 Roasts</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value">${unlockedMade} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_MADE.length}</span></div>
+          <div class="profile-stat-label">🌸 Compliments</div>
+        </div>
+      </div>
+      <div class="profile-completion">${mdxPct}% unlocked (${unlockedMade + unlockedDown} / ${quipTotal})</div>
+      <div class="profile-progress-track">
+        <div class="profile-progress-fill" style="width:${mdxPct}%"></div>
+      </div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════
