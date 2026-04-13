@@ -1381,6 +1381,9 @@
     Every roast and compliment you encounter is recorded here. Keep playing to unlock them all.
     Locked entries are shown as <strong style="letter-spacing:0.1em;">???</strong>.
   </p>
+  <div id="mdx-teacher-toolbar" style="display:none; margin-bottom:16px;">
+    <button id="mdx-preview-btn" class="btn" style="font-size:0.8rem; padding:6px 14px; border:1px solid rgba(136,200,136,0.4); color:#88cc88; background:rgba(136,200,136,0.08); border-radius:6px;" onclick="toggleMdxPreview()">👁 Preview All (Teacher)</button>
+  </div>
   <div class="mockdex-summary">
     <div class="mockdex-stat-block">
       <div class="mockdex-stat-label">💀 Roasts unlocked</div>
@@ -2953,23 +2956,48 @@ async function deleteUser(id, username) {
 //  MOCKÉDEX
 // ═══════════════════════════════════════════════════════
 
+let mdxPreviewAll = false;
+
+function toggleMdxPreview() {
+  mdxPreviewAll = !mdxPreviewAll;
+  const btn = document.getElementById('mdx-preview-btn');
+  btn.textContent = mdxPreviewAll ? '🔒 My Unlocks' : '👁 Preview All (Teacher)';
+  btn.style.borderColor = mdxPreviewAll ? 'rgba(201,168,76,0.5)' : 'rgba(136,200,136,0.4)';
+  btn.style.color = mdxPreviewAll ? '#c9a84c' : '#88cc88';
+  btn.style.background = mdxPreviewAll ? 'rgba(201,168,76,0.12)' : 'rgba(136,200,136,0.08)';
+  loadMockdex();
+}
+
 async function loadMockdex() {
+  const isTeacher = appUser && appUser.role === 'teacher';
+  document.getElementById('mdx-teacher-toolbar').style.display = isTeacher ? '' : 'none';
+
   const res = await fetch(API + '/quips/unlocked');
   const unlocked = await res.json();
-  const unlockedDown = new Set(unlocked.down);
-  const unlockedMade = new Set(unlocked.made);
+
+  let unlockedDown, unlockedMade;
+  if (isTeacher && mdxPreviewAll) {
+    // Preview mode: treat all non-empty entries as unlocked
+    unlockedDown = new Set(QUIPS_DOWN.map((q, i) => q ? i : -1).filter(i => i >= 0));
+    unlockedMade = new Set(QUIPS_MADE.map((q, i) => q ? i : -1).filter(i => i >= 0));
+  } else {
+    unlockedDown = new Set(unlocked.down);
+    unlockedMade = new Set(unlocked.made);
+  }
 
   // Update summary stats
   const downTotal = QUIPS_DOWN.filter(q => q).length;
   const madeTotal = QUIPS_MADE.filter(q => q).length;
+  const downUnlocked = isTeacher && mdxPreviewAll ? downTotal : unlockedDown.size;
+  const madeUnlocked = isTeacher && mdxPreviewAll ? madeTotal : unlockedMade.size;
   document.getElementById('mdx-down-count').innerHTML =
-    `${unlockedDown.size} <span>/ ${downTotal}</span>`;
+    `${downUnlocked} <span>/ ${downTotal}</span>`;
   document.getElementById('mdx-made-count').innerHTML =
-    `${unlockedMade.size} <span>/ ${madeTotal}</span>`;
+    `${madeUnlocked} <span>/ ${madeTotal}</span>`;
   document.getElementById('mdx-down-bar').style.width =
-    (downTotal ? Math.round(unlockedDown.size / downTotal * 100) : 0) + '%';
+    (downTotal ? Math.round(downUnlocked / downTotal * 100) : 0) + '%';
   document.getElementById('mdx-made-bar').style.width =
-    (madeTotal ? Math.round(unlockedMade.size / madeTotal * 100) : 0) + '%';
+    (madeTotal ? Math.round(madeUnlocked / madeTotal * 100) : 0) + '%';
 
   const renderSection = (title, quips, unlockedSet, typeClass, holoSet) => {
     const pad = String(quips.length).length;
