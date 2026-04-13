@@ -789,7 +789,6 @@
      PAGE 1: LESSON LIST
 ══════════════════════════════════════════════════════ -->
 <div class="page active" id="lessons-page">
-  <div class="page-title">Available Lessons</div>
   <div class="lesson-grid" id="lesson-grid">
     <div class="empty-state">
       <div class="icon">🃏</div>
@@ -1457,16 +1456,17 @@ async function loadLessons(forScores=false) {
 
     let html = '';
 
-    // Homework section at the top (shown when logged in and homework folders exist)
+    // Homework section at the top (shown when homework folders exist)
     if (hwTopics.length > 0) {
-      html += `<div class="homework-section">
-        <div class="homework-section-title">📋 Homework</div>
-        ${hwTopics.map(t => renderTopicGroup(t, true)).join('')}
-      </div>`;
+      html += `<div class="page-title">Homework</div>
+        ${hwTopics.map(t => renderTopicGroup(t, true)).join('')}`;
     }
 
-    // Regular lessons
-    html += regularTopics.map(t => renderTopicGroup(t, false)).join('');
+    // Available Lessons section
+    if (regularTopics.length > 0) {
+      html += `<div class="page-title"${hwTopics.length > 0 ? ' style="margin-top:40px;"' : ''}>Available Lessons</div>
+        ${regularTopics.map(t => renderTopicGroup(t, false)).join('')}`;
+    }
 
     grid.innerHTML = html || `<div class="empty-state"><div class="icon">🃏</div>
       <p>No lessons yet. Create one to get started!</p></div>`;
@@ -1594,7 +1594,7 @@ function newLesson() {
 
 function toggleTopic(header) {
   header.classList.toggle('collapsed');
-  header.nextElementSibling.classList.toggle('collapsed');
+  header.closest('.topic-group').querySelector('.topic-body').classList.toggle('collapsed');
 }
 
 function loadSampleHand() {
