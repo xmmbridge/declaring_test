@@ -115,6 +115,16 @@ def init_db():
             FOREIGN KEY (lesson_id) REFERENCES lessons(id),
             FOREIGN KEY (user_id)   REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS game_progress (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            lesson_id   INTEGER NOT NULL,
+            state_json  TEXT NOT NULL,
+            saved_at    TEXT DEFAULT (datetime('now')),
+            UNIQUE(user_id, lesson_id),
+            FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
+            FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+        );
     ''')
     conn.commit()
     # Migrations for existing databases
@@ -537,6 +547,46 @@ def delete_lesson(lid):
     conn.execute('DELETE FROM lessons WHERE id=?', (lid,))
     conn.execute('DELETE FROM attempts WHERE lesson_id=?', (lid,))
     conn.commit(); conn.close()
+    return jsonify({'ok': True})
+
+# ── Game progress ─────────────────────────────────────────────────────────────
+
+@app.route('/api/progress/<int:lid>', methods=['PUT'])
+def save_progress(lid):
+    user = current_user()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    conn = get_db()
+    conn.execute(
+        'INSERT OR REPLACE INTO game_progress (user_id, lesson_id, state_json, saved_at) '
+        'VALUES (?, ?, ?, datetime("now"))',
+        (user['id'], lid, json.dumps(request.json)))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/progress/<int:lid>', methods=['GET'])
+def get_progress(lid):
+    user = current_user()
+    if not user:
+        return jsonify(None)
+    conn = get_db()
+    row = conn.execute(
+        'SELECT state_json FROM game_progress WHERE user_id=? AND lesson_id=?',
+        (user['id'], lid)).fetchone()
+    conn.close()
+    return jsonify(json.loads(row['state_json']) if row else None)
+
+@app.route('/api/progress/<int:lid>', methods=['DELETE'])
+def clear_progress(lid):
+    user = current_user()
+    if not user:
+        return jsonify({'ok': True})
+    conn = get_db()
+    conn.execute('DELETE FROM game_progress WHERE user_id=? AND lesson_id=?',
+                 (user['id'], lid))
+    conn.commit()
+    conn.close()
     return jsonify({'ok': True})
 
 # ── DDS ───────────────────────────────────────────────────────────────────────

@@ -1511,36 +1511,41 @@ let state = {
 
 function saveGameProgress() {
   if (!state.lesson || state.allPlayedCards.length === 0 || state.gameOver || !appUser) return;
-  const key = `bm3k_progress_${state.lesson.id}_${appUser.id}`;
-  localStorage.setItem(key, JSON.stringify({
-    version: 1,
-    hands:         state.hands,
-    originalHands: state.originalHands,
-    trump:         state.trump,
-    declarer:      state.declarer,
-    dummy:         state.dummy,
-    contract:      state.contract,
-    contractLevel: state.contractLevel,
-    target:        state.target,
-    currentTrick:  state.currentTrick,
-    trickLeader:   state.trickLeader,
-    nsTricks:      state.nsTricks,
-    ewTricks:      state.ewTricks,
-    allPlayedCards: state.allPlayedCards,
-    studentName:   state.studentName,
-    playSequence:  state.playSequence,
-  }));
+  // Fire-and-forget — must not block navigation
+  fetch(API + '/progress/' + state.lesson.id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      version: 1,
+      hands:          state.hands,
+      originalHands:  state.originalHands,
+      trump:          state.trump,
+      declarer:       state.declarer,
+      dummy:          state.dummy,
+      contract:       state.contract,
+      contractLevel:  state.contractLevel,
+      target:         state.target,
+      currentTrick:   state.currentTrick,
+      trickLeader:    state.trickLeader,
+      nsTricks:       state.nsTricks,
+      ewTricks:       state.ewTricks,
+      allPlayedCards: state.allPlayedCards,
+      studentName:    state.studentName,
+      playSequence:   state.playSequence,
+    })
+  }).catch(() => {});
 }
 
 function clearGameProgress(lessonId) {
   if (!appUser) return;
-  localStorage.removeItem(`bm3k_progress_${lessonId}_${appUser.id}`);
+  fetch(API + '/progress/' + lessonId, { method: 'DELETE' }).catch(() => {});
 }
 
-function getSavedGameProgress(lessonId) {
+async function getSavedGameProgress(lessonId) {
   if (!appUser) return null;
   try {
-    const d = JSON.parse(localStorage.getItem(`bm3k_progress_${lessonId}_${appUser.id}`));
+    const res = await fetch(API + '/progress/' + lessonId);
+    const d = await res.json();
     return d && d.version === 1 ? d : null;
   } catch { return null; }
 }
@@ -1873,7 +1878,7 @@ async function openLesson(id) {
   const res = await fetch(API + '/lessons/' + id);
   state.lesson = await res.json();
   if (appUser) {
-    const saved = getSavedGameProgress(id);
+    const saved = await getSavedGameProgress(id);
     if (saved) {
       await resumeGame(state.lesson, saved);
       return;
