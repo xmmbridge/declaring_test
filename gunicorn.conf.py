@@ -1,6 +1,6 @@
 import os
 bind = f"0.0.0.0:{os.environ.get('PORT', '8080')}"
-workers = 1
+workers = 2
 timeout = 120
 # Share app code between workers via copy-on-write (biggest RAM saving).
 # SQLite connections are created per-request so forking is safe.
