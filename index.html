@@ -185,6 +185,25 @@
   }
   .edit-btn:hover { color: var(--gold); }
 
+  /* ── HOMEWORK STATUS PILLS ── */
+  .hw-badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .hw-badge-none  { background: rgba(255,255,255,0.08); color: rgba(245,240,232,0.4); }
+  .hw-badge-down  { background: rgba(180,50,50,0.35);   color: #f08080; border: 1px solid rgba(180,50,50,0.5); }
+  .hw-badge-made  { background: rgba(60,160,60,0.3);    color: #80e080; border: 1px solid rgba(60,160,60,0.5); }
+  .hw-badge-rainbow {
+    background: linear-gradient(90deg, #c9a84c, #e8d07a, #c9a84c);
+    color: var(--green-dark);
+    border: 1px solid var(--gold);
+  }
+
   /* ── FORMS ── */
   .form-card {
     background: rgba(255,255,255,0.05);
