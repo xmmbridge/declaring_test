@@ -660,6 +660,18 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* ── FOOTER ── */
+  .site-footer {
+    text-align: center;
+    padding: 24px 32px;
+    font-size: 0.75rem;
+    color: rgba(245,240,232,0.3);
+    border-top: 1px solid rgba(201,168,76,0.1);
+    line-height: 1.8;
+  }
+  .site-footer a { color: rgba(201,168,76,0.5); text-decoration: none; }
+  .site-footer a:hover { color: var(--gold); }
+
   /* ── SUIT PICKER (mobile 2-tap) ── */
   #suit-picker-overlay {
     display: none;
@@ -1335,6 +1347,15 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<footer class="site-footer">
+  <div>Inspired by <strong style="color:rgba(245,240,232,0.45);">BridgeMaster 2000</strong> by Fred Gitelman &amp; Bridge Base Inc.</div>
+  <div>
+    Defender AI powered by <a href="https://github.com/dominicprice/endplay" target="_blank" rel="noopener">endplay</a>
+    and the <a href="https://github.com/dds-bridge/dds" target="_blank" rel="noopener">Double Dummy Solver</a>
+    by Bo Haglund &amp; Soren Hein.
+  </div>
+</footer>
 
 <script>
 // ═══════════════════════════════════════════════════════
