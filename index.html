@@ -1803,7 +1803,9 @@ async function getDDSBestCard(player) {
         remaining_hands: remaining
       })
     });
+    if (!res.ok) throw new Error('DDS ' + res.status);
     const data = await res.json();
+    if (!data.best_card) throw new Error('DDS missing card');
     return data.best_card;
   } catch(e) {
     // Fallback: play first legal card

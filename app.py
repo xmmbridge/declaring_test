@@ -561,11 +561,14 @@ def dds_next_move():
     next_player   = d['next_player']
     declarer      = d.get('declarer', 'S')
 
-    # Build PBN with current-trick cards restored to their owners' hands,
-    # so deal.play() can remove them normally (avoids from_hand=False issues).
+    # Restore trick cards to the owners' hands so deal.play() can remove them.
+    # Guard: only add a trick card if it isn't already in that player's remaining
+    # (front-end strips them, but be defensive in case of timing edge-cases).
     hands_for_pbn = {p: list(cards) for p, cards in remaining.items()}
     for entry in current_trick:
-        hands_for_pbn[entry['player']].append(entry['card'])
+        hand = hands_for_pbn.setdefault(entry['player'], [])
+        if entry['card'] not in hand:
+            hand.append(entry['card'])
 
     pbn  = remaining_to_pbn(hands_for_pbn)
     deal = Deal(pbn)
@@ -577,13 +580,21 @@ def dds_next_move():
             try:
                 deal.play(str_to_card(entry['card']))
             except Exception as ex:
-                print('play error:', ex)
+                print(f'play error: {ex} | card={entry["card"]} player={entry["player"]}')
     else:
         deal.first = PLAYER_MAP[next_player]
 
     # Convert to strings immediately — avoids Card object attribute issues.
     # Card string format: "SR" where S=suit char ('S','H','D','C'), R=rank char.
-    results_str = [(card_to_str(c), t) for c, t in solve_board(deal)]
+    try:
+        results_str = [(card_to_str(c), t) for c, t in solve_board(deal)]
+    except Exception as dds_err:
+        print(f'DDS solve_board error: {dds_err}')
+        print(f'  remaining={remaining}')
+        print(f'  current_trick={current_trick}')
+        print(f'  hands_for_pbn={hands_for_pbn}')
+        print(f'  pbn={pbn}')
+        return jsonify({'error': 'DDS failed', 'detail': str(dds_err)}), 500
 
     # solve_board always returns NS tricks regardless of who is playing.
     # NS players want MORE NS tricks (max); EW players want FEWER (min).
