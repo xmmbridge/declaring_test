@@ -709,11 +709,21 @@ def save_attempt():
 
 @app.route('/api/attempts/lesson/<int:lid>', methods=['GET'])
 def get_lesson_attempts(lid):
+    user = current_user()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
     conn = get_db()
-    rows = conn.execute(
-        'SELECT a.*, l.title as lesson_title '
-        'FROM attempts a JOIN lessons l ON a.lesson_id=l.id '
-        'WHERE a.lesson_id=? ORDER BY a.played_at DESC', (lid,)).fetchall()
+    if user['role'] == 'teacher':
+        rows = conn.execute(
+            'SELECT a.*, l.title as lesson_title '
+            'FROM attempts a JOIN lessons l ON a.lesson_id=l.id '
+            'WHERE a.lesson_id=? ORDER BY a.played_at DESC', (lid,)).fetchall()
+    else:
+        rows = conn.execute(
+            'SELECT a.*, l.title as lesson_title '
+            'FROM attempts a JOIN lessons l ON a.lesson_id=l.id '
+            'WHERE a.lesson_id=? AND a.user_id=? ORDER BY a.played_at DESC',
+            (lid, user['id'])).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 

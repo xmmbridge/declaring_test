@@ -940,7 +940,7 @@
   <div class="nav-tabs">
     <button class="nav-tab active" id="tab-lessons" onclick="showPage('lessons')">📚 Lessons</button>
     <button class="nav-tab teacher-only" id="tab-create" onclick="newLesson()" style="display:none">➕ Create Lesson</button>
-    <button class="nav-tab" id="tab-scores" onclick="showPage('scores')">📊 Scores</button>
+    <button class="nav-tab auth-only" id="tab-scores" onclick="showPage('scores')" style="display:none">📊 Scores</button>
     <button class="nav-tab teacher-only" id="tab-users" onclick="showPage('users')" style="display:none">👥 Manage Users</button>
     <button class="nav-tab auth-only" id="tab-mockdex" onclick="showPage('mockdex')" style="display:none" title="Your unlocked roasts &amp; compliments">📖 Mockédex</button>
     <button class="nav-tab auth-only" id="tab-profile" onclick="showPage('profile')" style="display:none">👤 Profile</button>
@@ -1538,7 +1538,7 @@ function showPage(name) {
   if (tabId[name]) document.getElementById(tabId[name])?.classList.add('active');
 
   if (name === 'lessons') loadLessons();
-  if (name === 'scores')  loadLessons(true).then(() => loadScores());
+  if (name === 'scores')  { if (!appUser) { showPage('lessons'); return; } loadLessons(true).then(() => loadScores()); }
   if (name === 'users')   loadUsers();
   if (name === 'mockdex') loadMockdex();
   if (name === 'profile') loadProfile();
@@ -2508,6 +2508,7 @@ function updateAuthUI() {
   // Show/hide role-gated nav tabs
   document.getElementById('tab-create').style.display  = isTeacher ? '' : 'none';
   document.getElementById('tab-users').style.display   = isTeacher ? '' : 'none';
+  document.getElementById('tab-scores').style.display  = appUser   ? '' : 'none';
   document.getElementById('tab-mockdex').style.display = appUser   ? '' : 'none';
   document.getElementById('tab-profile').style.display = appUser   ? '' : 'none';
 }
