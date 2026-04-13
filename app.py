@@ -639,13 +639,14 @@ def dds_next_move():
         app.logger.error(f'  pbn={pbn}')
         return jsonify({'error': 'DDS failed', 'detail': str(dds_err)}), 500
 
-    # solve_board always returns NS tricks regardless of who is playing.
-    # NS players want MORE NS tricks (max); EW players want FEWER (min).
-    ns_player = next_player in ('N', 'S')
-    target_tricks = max(t for _, t in results_str) if ns_player else min(t for _, t in results_str)
+    # solve_board returns tricks for the side of the player who is next to act
+    # (EW tricks when an EW player leads/plays, NS tricks when NS).
+    # Since this endpoint is only ever called for defenders (EW), we always
+    # want to MAXIMISE — pick the card that gives EW the most tricks.
+    target_tricks = max(t for _, t in results_str)
 
     # Among cards that achieve the target, prefer the lowest-ranked card
-    # so defenders (and declarer) don't burn honours unnecessarily.
+    # so defenders don't burn honours unnecessarily.
     # rank_order[0]='A' (highest) … rank_order[12]='2' (lowest).
     # max by index picks the card whose rank sits furthest right = lowest rank.
     rank_order    = 'AKQJT98765432'
@@ -653,7 +654,7 @@ def dds_next_move():
     best_card_str = max(candidates, key=lambda s: rank_order.index(s[1]))
 
     trick_str = '|'.join(f'{e["player"]}:{e["card"]}' for e in current_trick)
-    app.logger.warning(f'DDS next={next_player} ns={ns_player} trick=[{trick_str}] '
+    app.logger.warning(f'DDS next={next_player} trick=[{trick_str}] '
                        f'target={target_tricks} all={sorted(results_str,key=lambda x:x[1],reverse=True)} '
                        f'cands={candidates} best={best_card_str}')
 
