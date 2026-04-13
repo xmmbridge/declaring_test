@@ -557,6 +557,8 @@ def validate_pbn(pbn):
             if len(suits) != 4:
                 return 'Each hand must have exactly 4 suits separated by dots'
             for s_idx, suit_ranks in enumerate(suits):
+                if suit_ranks in ('', '-'):
+                    continue  # void in this suit
                 for rank in suit_ranks:
                     cards.append(suit_chars[s_idx] + rank)
         if len(cards) != 52:
