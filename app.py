@@ -580,7 +580,7 @@ def dds_next_move():
             try:
                 deal.play(str_to_card(entry['card']))
             except Exception as ex:
-                print(f'play error: {ex} | card={entry["card"]} player={entry["player"]}')
+                app.logger.warning(f'play error: {ex} | card={entry["card"]} player={entry["player"]}')
     else:
         deal.first = PLAYER_MAP[next_player]
 
@@ -589,11 +589,11 @@ def dds_next_move():
     try:
         results_str = [(card_to_str(c), t) for c, t in solve_board(deal)]
     except Exception as dds_err:
-        print(f'DDS solve_board error: {dds_err}')
-        print(f'  remaining={remaining}')
-        print(f'  current_trick={current_trick}')
-        print(f'  hands_for_pbn={hands_for_pbn}')
-        print(f'  pbn={pbn}')
+        app.logger.error(f'DDS solve_board error: {dds_err}')
+        app.logger.error(f'  remaining={remaining}')
+        app.logger.error(f'  current_trick={current_trick}')
+        app.logger.error(f'  hands_for_pbn={hands_for_pbn}')
+        app.logger.error(f'  pbn={pbn}')
         return jsonify({'error': 'DDS failed', 'detail': str(dds_err)}), 500
 
     # solve_board always returns NS tricks regardless of who is playing.
@@ -609,8 +609,8 @@ def dds_next_move():
     candidates    = [s for s, t in results_str if t == target_tricks]
     best_card_str = max(candidates, key=lambda s: rank_order.index(s[1]))
 
-    print(f'DDS next={next_player} ns={ns_player} target={target_tricks} '
-          f'cands={candidates} best={best_card_str}')
+    app.logger.info(f'DDS next={next_player} ns={ns_player} target={target_tricks} '
+                    f'cands={candidates} best={best_card_str}')
 
     return jsonify({
         'best_card':   best_card_str,
