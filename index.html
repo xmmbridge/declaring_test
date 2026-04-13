@@ -1656,6 +1656,7 @@ function initGame(lesson) {
     const suitChars = ['S','H','D','C'];
     const cards = [];
     suits.forEach((suitStr, i) => {
+      if (suitStr === '-' || suitStr === '') return; // void
       for (const rank of suitStr) {
         cards.push(suitChars[i] + rank);
       }
