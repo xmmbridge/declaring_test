@@ -1977,13 +1977,8 @@ async function finishGame() {
   // Show result
   const box = document.getElementById('result-box');
   box.className = 'result-box ' + (diff >= 0 ? 'made' : 'down');
-  document.getElementById('result-heading').textContent = heading;
-  document.getElementById('result-score').textContent =
-    (score > 0 ? '+' : '') + score + ' pts';
-  document.getElementById('result-detail').textContent =
-    declarerTricks + ' tricks made, needed ' + state.target;
-  document.getElementById('result-contract').textContent =
-    formatContract(state.contract) + ' by ' + PLAYER_NAMES[state.declarer];
+  document.getElementById('result-heading').textContent =
+    diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
   
   const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
   const quipType = diff >= 0 ? 'made' : 'down';
