@@ -660,10 +660,66 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* ── BRIDGE TABLE WRAPPER ── */
+  .bridge-table-wrap { width: 680px; }
+
   /* ── RESPONSIVE ── */
-  @media (max-width: 720px) {
-    .bridge-table { width: 360px; height: 380px; }
-    .card { width: 30px; height: 44px; font-size: 0.65rem; margin: 0 -8px; }
+
+  /* Tablet / large phone: nav tabs wrap to second row */
+  @media (max-width: 768px) {
+    header { padding: 10px 16px; gap: 8px; flex-wrap: wrap; }
+    header h1 { font-size: 1.2rem; flex-shrink: 0; }
+    .auth-section { margin-left: auto; flex-shrink: 0; }
+    .auth-role { display: none; }
+    .nav-tabs {
+      order: 3;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+      gap: 6px;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .nav-tab { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+    .page { padding: 20px 16px; }
+    .game-header { max-width: 100%; }
+  }
+
+  /* Bridge table: scale down when viewport narrower than table */
+  @media (max-width: 700px) {
+    .bridge-table-wrap {
+      width: 100%;
+      overflow: hidden;
+      height: 464px; /* 580 × 0.80 */
+      display: flex;
+      justify-content: center;
+    }
+    .bridge-table { flex-shrink: 0; transform: scale(0.80); transform-origin: top center; }
+    #explanation-panel { max-width: 100% !important; }
+  }
+
+  /* Medium phone: compress game header, shrink table more */
+  @media (max-width: 540px) {
+    .bridge-table-wrap { height: 348px; } /* 580 × 0.60 */
+    .bridge-table { transform: scale(0.60); }
+    .game-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      padding: 10px 12px;
+    }
+    .game-header > div:last-child { justify-content: space-between; }
+    .game-info h2 { font-size: 1rem; }
+    .score-display .tricks { font-size: 1.4rem; }
+    .score-display .tricks-label { font-size: 0.65rem; }
+  }
+
+  /* Small phone */
+  @media (max-width: 400px) {
+    .bridge-table-wrap { height: 290px; } /* 580 × 0.50 */
+    .bridge-table { transform: scale(0.50); }
   }
 
   .empty-state {
@@ -1079,6 +1135,7 @@
     </div>
   </div>
 
+  <div class="bridge-table-wrap">
   <div class="bridge-table" id="bridge-table">
     <div class="turn-indicator" id="turn-indicator">Your turn</div>
 
@@ -1120,6 +1177,7 @@
       <div class="ew">EW: <span id="ew-tricks">0</span></div>
     </div>
   </div>
+  </div><!-- /.bridge-table-wrap -->
 
   <!-- Explanation panel -->
   <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:16px; padding:16px 20px;
