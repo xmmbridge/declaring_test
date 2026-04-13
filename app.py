@@ -652,8 +652,8 @@ def dds_next_move():
     candidates    = [s for s, t in results_str if t == target_tricks]
     best_card_str = max(candidates, key=lambda s: rank_order.index(s[1]))
 
-    app.logger.info(f'DDS next={next_player} ns={ns_player} target={target_tricks} '
-                    f'cands={candidates} best={best_card_str}')
+    app.logger.warning(f'DDS next={next_player} ns={ns_player} target={target_tricks} '
+                       f'cands={candidates} best={best_card_str}')
 
     return jsonify({
         'best_card':   best_card_str,
