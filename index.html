@@ -2097,12 +2097,6 @@ function showSuitPicker(player, suit) {
 
   if (!suitCards.length) return;
 
-  // Skip picker if only one card — just play it
-  if (suitCards.length === 1) {
-    humanPlaysCard(player, suitCards[0]);
-    return;
-  }
-
   const sym     = SUIT_SYMBOLS[suit];
   const fullName = { S:'Spades', H:'Hearts', D:'Diamonds', C:'Clubs' }[suit];
   const cssName  = SUIT_NAMES[suit];
