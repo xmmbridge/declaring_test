@@ -1547,8 +1547,8 @@ async function createLesson() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead })
     });
-    if (!res.ok) throw new Error('Server error');
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
     toast(isEdit ? '✅ Lesson updated!' : '✅ Lesson saved! DDS par: ' + data.par_tricks + ' tricks');
     editingLessonId = null;
     ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]

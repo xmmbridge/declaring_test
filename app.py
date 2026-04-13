@@ -480,6 +480,9 @@ def get_lesson(lid):
 @teacher_required
 def create_lesson():
     d = request.json
+    pbn_err = validate_pbn(d.get('pbn', ''))
+    if pbn_err:
+        return jsonify({'error': f'Invalid deal: {pbn_err}'}), 400
     par_tricks = int(d['contract'][0]) + 6
     try:
         deal = Deal(d['pbn'])
@@ -505,6 +508,9 @@ def create_lesson():
 @teacher_required
 def update_lesson(lid):
     d = request.json
+    pbn_err = validate_pbn(d.get('pbn', ''))
+    if pbn_err:
+        return jsonify({'error': f'Invalid deal: {pbn_err}'}), 400
     par_tricks = int(d['contract'][0]) + 6
     try:
         deal = Deal(d['pbn'])
@@ -534,6 +540,33 @@ def delete_lesson(lid):
     return jsonify({'ok': True})
 
 # ── DDS ───────────────────────────────────────────────────────────────────────
+
+def validate_pbn(pbn):
+    """Return an error string if the PBN deal is invalid, else None."""
+    try:
+        parts = pbn.split(':')
+        if len(parts) < 2:
+            return 'PBN must be in format N:hand hand hand hand'
+        hands_raw = parts[1].split()
+        if len(hands_raw) != 4:
+            return 'PBN must contain exactly 4 hands'
+        suit_chars = ['S', 'H', 'D', 'C']
+        cards = []
+        for hand_str in hands_raw:
+            suits = hand_str.split('.')
+            if len(suits) != 4:
+                return 'Each hand must have exactly 4 suits separated by dots'
+            for s_idx, suit_ranks in enumerate(suits):
+                for rank in suit_ranks:
+                    cards.append(suit_chars[s_idx] + rank)
+        if len(cards) != 52:
+            return f'Expected 52 cards total, found {len(cards)}'
+        dupes = [c for c in set(cards) if cards.count(c) > 1]
+        if dupes:
+            return f'Duplicate card(s): {", ".join(sorted(dupes))}'
+        return None
+    except Exception as e:
+        return str(e)
 
 def remaining_to_pbn(remaining):
     rank_order = 'AKQJT98765432'
@@ -569,6 +602,16 @@ def dds_next_move():
         hand = hands_for_pbn.setdefault(entry['player'], [])
         if entry['card'] not in hand:
             hand.append(entry['card'])
+
+    # Deduplicate across hands — safety net for lessons saved with invalid PBN data
+    # (e.g. same card in two players' hands). First occurrence wins (N→E→S→W priority).
+    seen_cards: set = set()
+    for p in ['N', 'E', 'S', 'W']:
+        if p in hands_for_pbn:
+            before = len(hands_for_pbn[p])
+            hands_for_pbn[p] = [c for c in hands_for_pbn[p] if not (c in seen_cards or seen_cards.add(c))]
+            if len(hands_for_pbn[p]) < before:
+                app.logger.warning(f'Removed {before - len(hands_for_pbn[p])} duplicate card(s) from {p}\'s hand')
 
     pbn  = remaining_to_pbn(hands_for_pbn)
     deal = Deal(pbn)
