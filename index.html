@@ -1014,6 +1014,37 @@
     100% { background-position: 300% 50%; }
   }
 
+  /* ── Game auction panel ──────────────────────────────── */
+  .game-auction-panel {
+    max-width: 680px; width: 100%; margin-top: 10px;
+    border: 1px solid rgba(201,168,76,0.2); border-radius: 8px;
+    background: rgba(0,0,0,0.3); overflow: hidden;
+  }
+  .game-auction-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; cursor: pointer; user-select: none;
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: rgba(245,240,232,0.55);
+    transition: color 0.15s;
+  }
+  .game-auction-toggle:hover { color: var(--gold-light); }
+  .game-auction-toggle .gat-arrow { font-size: 0.65rem; transition: transform 0.2s; }
+  .game-auction-toggle.open .gat-arrow { transform: rotate(180deg); }
+  .game-auction-body {
+    padding: 0 16px 14px; overflow-x: auto;
+  }
+  .game-auction-body .auction-table { font-size: 0.82rem; }
+  .game-auction-body .auction-table th {
+    padding: 3px 14px; color: var(--gold); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+  .game-auction-body .auction-table td { padding: 4px 14px; min-width: 52px; text-align: center; }
+  .game-auction-body .auction-table td.bid-pass  { color: rgba(245,240,232,0.35); font-style: italic; }
+  .game-auction-body .auction-table td.bid-dbl   { color: #e87979; font-weight: 700; }
+  .game-auction-body .auction-table td.bid-rdbl  { color: #79b8e8; font-weight: 700; }
+  .game-auction-body .auction-table td.bid-bid   { color: var(--cream); font-weight: 600; }
+
   /* suit colors inline */
   .s { color: #cccccc; }
   .h { color: #ff6666; }
@@ -1447,8 +1478,17 @@
   </div>
   </div><!-- /.bridge-table-wrap -->
 
+  <!-- Auction panel (shown if lesson has auction data) -->
+  <div class="game-auction-panel" id="game-auction-panel" style="display:none;">
+    <div class="game-auction-toggle" id="game-auction-toggle" onclick="toggleGameAuction()">
+      <span>🃏 Auction</span>
+      <span class="gat-arrow">▼</span>
+    </div>
+    <div class="game-auction-body" id="game-auction-body" style="display:none;"></div>
+  </div>
+
   <!-- Explanation panel -->
-  <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:16px; padding:16px 20px;
+  <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:10px; padding:16px 20px;
     background:rgba(0,0,0,0.3); border:1px solid rgba(201,168,76,0.2); border-radius:8px;
     font-size:0.85rem; color:rgba(245,240,232,0.7); display:none;">
     <strong style="color:var(--gold);">📖 Teaching Note:</strong>
@@ -2247,6 +2287,63 @@ function startGame() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  GAME AUCTION DISPLAY
+// ═══════════════════════════════════════════════════════
+
+function renderGameAuction(lesson) {
+  const panel  = document.getElementById('game-auction-panel');
+  const body   = document.getElementById('game-auction-body');
+  const toggle = document.getElementById('game-auction-toggle');
+  if (!lesson.auction) { panel.style.display = 'none'; return; }
+
+  let data;
+  try { data = JSON.parse(lesson.auction); } catch(e) { panel.style.display = 'none'; return; }
+  if (!data.bids || !data.bids.length) { panel.style.display = 'none'; return; }
+
+  const seats = ['N','E','S','W'];
+  const dealerIdx = seats.indexOf(data.dealer || 'N');
+
+  const fmtBid = bid => {
+    if (bid === 'p')  return { text: 'pass', cls: 'bid-pass' };
+    if (bid === 'X')  return { text: 'Dbl',  cls: 'bid-dbl'  };
+    if (bid === 'XX') return { text: 'Rdbl', cls: 'bid-rdbl' };
+    const s = bid.slice(1);
+    return { text: bid[0] + (s === 'N' ? 'NT' : BID_SUIT_SYMS[s]), cls: 'bid-bid' };
+  };
+
+  let html = '<table class="auction-table"><thead><tr>';
+  seats.forEach((s, i) => {
+    html += `<th>${s}${i === dealerIdx ? ' *' : ''}</th>`;
+  });
+  html += '</tr></thead><tbody><tr>';
+
+  let col = dealerIdx;
+  for (let i = 0; i < dealerIdx; i++) html += '<td></td>';
+  data.bids.forEach(bid => {
+    if (col === 4) { html += '</tr><tr>'; col = 0; }
+    const { text, cls } = fmtBid(bid);
+    html += `<td class="${cls}">${text}</td>`;
+    col++;
+  });
+  while (col > 0 && col < 4) { html += '<td></td>'; col++; }
+  html += '</tr></tbody></table>';
+
+  body.innerHTML = html;
+  panel.style.display = '';
+  // Keep collapsed by default; toggle handles open/close
+  body.style.display = 'none';
+  toggle.classList.remove('open');
+}
+
+function toggleGameAuction() {
+  const body   = document.getElementById('game-auction-body');
+  const toggle = document.getElementById('game-auction-toggle');
+  const open   = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  toggle.classList.toggle('open', open);
+}
+
+// ═══════════════════════════════════════════════════════
 //  GAME INITIALISATION
 // ═══════════════════════════════════════════════════════
 
@@ -2317,6 +2414,7 @@ function initGame(lesson) {
   } else {
     document.getElementById('explanation-panel').style.display = 'none';
   }
+  renderGameAuction(lesson);
 
   // Label the seats
   PLAYERS.forEach(p => {
@@ -2370,6 +2468,7 @@ async function resumeGame(lesson, saved) {
   } else {
     document.getElementById('explanation-panel').style.display = 'none';
   }
+  renderGameAuction(lesson);
 
   PLAYERS.forEach(p => {
     const label = document.getElementById(p + '-label');
