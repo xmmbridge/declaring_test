@@ -840,8 +840,9 @@ def teacher_students():
     conn = get_db()
     groups = conn.execute('SELECT id, name FROM groups ORDER BY name').fetchall()
 
-    def student_stats(student_rows, hw_ids):
-        total = len(hw_ids)
+    def student_stats(student_rows, hw_lessons):
+        hw_ids = [l['id'] for l in hw_lessons]
+        total  = len(hw_ids)
         result = []
         for s in student_rows:
             attempts = conn.execute(
@@ -858,17 +859,24 @@ def teacher_students():
                     per_lesson[lid]['made'] = True
                     per_lesson[lid]['first_try'] = (per_lesson[lid]['cnt'] == 1)
             cnt_none = cnt_down = cnt_made = cnt_first = 0
+            lesson_status = {}
             for lid in hw_ids:
                 st = per_lesson.get(lid)
-                if not st:              cnt_none  += 1
-                elif not st['made']:    cnt_down  += 1
-                elif st['first_try']:   cnt_first += 1
-                else:                   cnt_made  += 1
+                if not st:
+                    status = 'none';  cnt_none  += 1
+                elif not st['made']:
+                    status = 'down';  cnt_down  += 1
+                elif st['first_try']:
+                    status = 'first'; cnt_first += 1
+                else:
+                    status = 'made';  cnt_made  += 1
+                lesson_status[lid] = status
             pct = round((cnt_made + cnt_first) / total * 100) if total else 0
             result.append({
                 'id': s['id'], 'username': s['username'],
                 'hw_total': total, 'hw_none': cnt_none, 'hw_down': cnt_down,
-                'hw_made': cnt_made, 'hw_first': cnt_first, 'pct': pct
+                'hw_made': cnt_made, 'hw_first': cnt_first, 'pct': pct,
+                'lessons': lesson_status,
             })
         return result
 
@@ -882,18 +890,19 @@ def teacher_students():
             (gid,)
         ).fetchall()
         hw_rows = conn.execute(
-            'SELECT l.id FROM lessons l '
+            'SELECT l.id, l.title, l.topic FROM lessons l '
             'JOIN topics t ON t.name=l.topic '
             'WHERE t.homework=1 AND ('
             '  t.restricted=0 OR EXISTS ('
             '    SELECT 1 FROM topic_groups tg WHERE tg.topic_name=t.name AND tg.group_id=?'
             '  )'
-            ')', (gid,)
+            ') ORDER BY l.topic COLLATE NOCASE, l.title COLLATE NOCASE', (gid,)
         ).fetchall()
-        hw_ids = {r['id'] for r in hw_rows}
+        hw_lessons = [dict(r) for r in hw_rows]
         output.append({
             'id': gid, 'name': group['name'],
-            'students': student_stats(student_rows, hw_ids)
+            'hw_lessons': hw_lessons,
+            'students': student_stats(student_rows, hw_lessons)
         })
 
     # Ungrouped students
@@ -904,14 +913,16 @@ def teacher_students():
     ).fetchall()
     if ungrouped:
         hw_rows = conn.execute(
-            'SELECT l.id FROM lessons l '
+            'SELECT l.id, l.title, l.topic FROM lessons l '
             'JOIN topics t ON t.name=l.topic '
-            'WHERE t.homework=1 AND t.restricted=0'
+            'WHERE t.homework=1 AND t.restricted=0 '
+            'ORDER BY l.topic COLLATE NOCASE, l.title COLLATE NOCASE'
         ).fetchall()
-        hw_ids = {r['id'] for r in hw_rows}
+        hw_lessons = [dict(r) for r in hw_rows]
         output.append({
             'id': None, 'name': 'Ungrouped',
-            'students': student_stats(ungrouped, hw_ids)
+            'hw_lessons': hw_lessons,
+            'students': student_stats(ungrouped, hw_lessons)
         })
 
     conn.close()
