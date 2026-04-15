@@ -956,7 +956,25 @@ def save_attempt():
         (d['lesson_id'], user['username'], user['id'], tricks_made, level,
          result, score, json.dumps(play_sequence), lin_data))
     aid = cur.lastrowid
-    conn.commit(); conn.close()
+    conn.commit()
+    # Notify teachers when a homework lesson attempt is submitted
+    lesson_row = conn.execute('SELECT title, topic FROM lessons WHERE id=?',
+                              (d['lesson_id'],)).fetchone()
+    if lesson_row and lesson_row['topic']:
+        hw = conn.execute('SELECT homework FROM topics WHERE name=?',
+                          (lesson_row['topic'],)).fetchone()
+        if hw and hw['homework']:
+            icon   = '✅' if 'Made' in result else '❌'
+            msg    = (f'{icon} <b>{user["username"]}</b> — {result}\n'
+                      f'Lesson: {lesson_row["title"]}\n'
+                      f'Topic: {lesson_row["topic"]}')
+            tchrs  = conn.execute(
+                "SELECT telegram_chat_id FROM users "
+                "WHERE role='teacher' AND telegram_chat_id IS NOT NULL"
+            ).fetchall()
+            for t in tchrs:
+                send_telegram(t['telegram_chat_id'], msg)
+    conn.close()
     return jsonify({'id': aid, 'result': result, 'score': score}), 201
 
 @app.route('/api/attempts/lesson/<int:lid>', methods=['GET'])
