@@ -6,7 +6,8 @@ Flask app with SQLite, endplay DDS, and username/password accounts
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, json, os, functools, math, random
+import sqlite3, json, os, functools, math, random, secrets
+import urllib.request
 from itertools import combinations
 from endplay.types import Deal, Player, Denom, Card, Rank
 from endplay.dds import solve_board
@@ -127,15 +128,22 @@ def init_db():
             FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
             FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS telegram_link_tokens (
+            token      TEXT PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
     ''')
     conn.commit()
     # Migrations for existing databases
     for stmt in [
-        'ALTER TABLE lessons  ADD COLUMN topic     TEXT DEFAULT ""',
-        'ALTER TABLE attempts ADD COLUMN user_id   INTEGER',
-        'ALTER TABLE attempts ADD COLUMN lin_data  TEXT DEFAULT ""',
-        'ALTER TABLE topics   ADD COLUMN homework  INTEGER NOT NULL DEFAULT 0',
-        'ALTER TABLE lessons  ADD COLUMN auction   TEXT DEFAULT ""',
+        'ALTER TABLE lessons  ADD COLUMN topic            TEXT DEFAULT ""',
+        'ALTER TABLE attempts ADD COLUMN user_id          INTEGER',
+        'ALTER TABLE attempts ADD COLUMN lin_data         TEXT DEFAULT ""',
+        'ALTER TABLE topics   ADD COLUMN homework         INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE lessons  ADD COLUMN auction          TEXT DEFAULT ""',
+        'ALTER TABLE users    ADD COLUMN telegram_chat_id TEXT DEFAULT NULL',
     ]:
         try:
             conn.execute(stmt)
@@ -237,6 +245,47 @@ def calculate_score(contract_str, tricks_made):
     else:
         return 50 * diff
 
+# ── Telegram helpers ──────────────────────────────────────────────────────────
+
+def send_telegram(chat_id, text):
+    """Fire-and-forget Telegram message. No-op when TELEGRAM_BOT_TOKEN not set."""
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    if not token or not chat_id:
+        return
+    url     = f'https://api.telegram.org/bot{token}/sendMessage'
+    payload = json.dumps({'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}).encode()
+    req     = urllib.request.Request(url, data=payload,
+                                     headers={'Content-Type': 'application/json'})
+    try:
+        urllib.request.urlopen(req, timeout=5)
+    except Exception as e:
+        app.logger.warning(f'Telegram send failed chat_id={chat_id}: {e}')
+
+
+def _notify_students(conn, topic_name, message):
+    """Send `message` to all students with Telegram linked who can see this topic."""
+    topic_row  = conn.execute('SELECT restricted FROM topics WHERE name=?',
+                              (topic_name,)).fetchone()
+    restricted = topic_row['restricted'] if topic_row else 0
+
+    if restricted:
+        rows = conn.execute('''
+            SELECT DISTINCT u.telegram_chat_id FROM users u
+            JOIN user_groups ug ON ug.user_id = u.id
+            JOIN topic_groups tg ON tg.group_id = ug.group_id
+            WHERE tg.topic_name = ? AND u.role = 'student'
+              AND u.telegram_chat_id IS NOT NULL
+        ''', (topic_name,)).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT telegram_chat_id FROM users "
+            "WHERE role='student' AND telegram_chat_id IS NOT NULL"
+        ).fetchall()
+
+    for r in rows:
+        send_telegram(r['telegram_chat_id'], message)
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -275,7 +324,14 @@ def auth_logout():
 
 @app.route('/auth/me', methods=['GET'])
 def auth_me():
-    return jsonify(current_user())
+    user = current_user()
+    if user:
+        conn = get_db()
+        row  = conn.execute('SELECT telegram_chat_id FROM users WHERE id=?',
+                            (user['id'],)).fetchone()
+        conn.close()
+        user['telegram_linked'] = bool(row and row['telegram_chat_id'])
+    return jsonify(user)
 
 # ── Users (teacher only) ──────────────────────────────────────────────────────
 
@@ -433,11 +489,24 @@ def set_topic_restricted(name):
 def set_topic_homework(name):
     homework = 1 if request.json.get('homework') else 0
     conn = get_db()
+    old = conn.execute('SELECT homework FROM topics WHERE name=?', (name,)).fetchone()
+    old_hw = old['homework'] if old else 0
     conn.execute(
         'INSERT OR REPLACE INTO topics (name, restricted, homework) '
         'VALUES (?, COALESCE((SELECT restricted FROM topics WHERE name=?), 0), ?)',
         (name, name, homework))
     conn.commit()
+    # Notify students the first time a topic is marked as homework
+    if homework == 1 and old_hw == 0:
+        n = conn.execute('SELECT COUNT(*) AS cnt FROM lessons WHERE topic=?',
+                         (name,)).fetchone()['cnt']
+        if n:
+            plural = 's' if n != 1 else ''
+            _notify_students(conn, name,
+                f'📚 <b>New Homework Assigned</b>\n\n'
+                f'Topic: <b>{name}</b>\n'
+                f'{n} lesson{plural} waiting for you.\n\n'
+                f'Log in to BM3K to start playing!')
     conn.close()
     return jsonify({'ok': True})
 
@@ -527,7 +596,18 @@ def create_lesson():
         (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
          d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, d.get('auction','')))
     lid = cur.lastrowid
-    conn.commit(); conn.close()
+    conn.commit()
+    # Notify students if this lesson belongs to an already-active homework topic
+    topic = d.get('topic', '')
+    if topic:
+        hw_row = conn.execute('SELECT homework FROM topics WHERE name=?', (topic,)).fetchone()
+        if hw_row and hw_row['homework']:
+            _notify_students(conn, topic,
+                f'📚 <b>New Homework Lesson</b>\n\n'
+                f'<b>{d["title"]}</b>\n'
+                f'Topic: {topic}\n\n'
+                f'Log in to BM3K to play!')
+    conn.close()
     return jsonify({'id': lid, 'par_tricks': par_tricks}), 201
 
 @app.route('/api/lessons/<int:lid>', methods=['PUT'])
@@ -1134,6 +1214,91 @@ def check_claim():
     n_samples = len(index_sets)
     pct       = round(making_count / n_samples * 100) if n_samples else 0
     return jsonify({'can_claim': pct == 100, 'pct': pct, 'samples': n_samples})
+
+# ── Telegram bot ─────────────────────────────────────────────────────────────
+
+@app.route('/api/user/telegram/link', methods=['POST'])
+def telegram_link_request():
+    """Generate a one-time deep-link so the user can connect their Telegram account."""
+    user = current_user()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    token = secrets.token_urlsafe(16)
+    conn  = get_db()
+    conn.execute('DELETE FROM telegram_link_tokens WHERE user_id=?', (user['id'],))
+    conn.execute('INSERT INTO telegram_link_tokens (token, user_id) VALUES (?,?)',
+                 (token, user['id']))
+    conn.commit()
+    conn.close()
+    bot_username = os.environ.get('TELEGRAM_BOT_USERNAME', '')
+    deep_link    = f'https://t.me/{bot_username}?start={token}' if bot_username else None
+    return jsonify({'link': deep_link, 'token': token})
+
+
+@app.route('/api/user/telegram', methods=['DELETE'])
+def telegram_unlink():
+    """Remove the Telegram link for the current user."""
+    user = current_user()
+    if not user:
+        return jsonify({'error': 'Login required'}), 401
+    conn = get_db()
+    conn.execute('UPDATE users SET telegram_chat_id=NULL WHERE id=?', (user['id'],))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/telegram/webhook', methods=['POST'])
+def telegram_webhook():
+    """Receive updates from the Telegram bot."""
+    data = request.json or {}
+    msg  = data.get('message') or data.get('edited_message') or {}
+    text = msg.get('text', '')
+    chat_id = (msg.get('chat') or {}).get('id')
+    if not chat_id:
+        return jsonify({'ok': True})
+
+    if text.startswith('/start'):
+        parts = text.split(None, 1)
+        token = parts[1].strip() if len(parts) > 1 else ''
+        if token:
+            conn = get_db()
+            row  = conn.execute(
+                'SELECT user_id FROM telegram_link_tokens '
+                'WHERE token=? AND created_at > datetime("now","-1 hour")',
+                (token,)
+            ).fetchone()
+            if row:
+                conn.execute('UPDATE users SET telegram_chat_id=? WHERE id=?',
+                             (str(chat_id), row['user_id']))
+                conn.execute('DELETE FROM telegram_link_tokens WHERE token=?', (token,))
+                conn.commit()
+                conn.close()
+                send_telegram(chat_id,
+                    "✅ <b>Linked!</b> You'll receive a notification here whenever "
+                    "new homework is assigned.")
+            else:
+                conn.close()
+                send_telegram(chat_id,
+                    "❌ Link expired or already used. Please generate a new one "
+                    "from your profile page in BM3K.")
+        else:
+            send_telegram(chat_id,
+                "Hi! To link your BM3K account tap <b>Connect Telegram</b> "
+                "on your profile page.")
+
+    elif text == '/stop':
+        conn = get_db()
+        conn.execute('UPDATE users SET telegram_chat_id=NULL WHERE telegram_chat_id=?',
+                     (str(chat_id),))
+        conn.commit()
+        conn.close()
+        send_telegram(chat_id,
+            "🔕 Unlinked. You won't receive homework notifications anymore. "
+            "You can re-link anytime from BM3K.")
+
+    return jsonify({'ok': True})
+
 
 # ── Quip unlocks (Mockédex) ───────────────────────────────────────────────────
 

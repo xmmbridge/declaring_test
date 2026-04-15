@@ -229,6 +229,29 @@
   .profile-progress-fill { height:100%; border-radius:4px; transition:width 0.5s ease;
                            background:linear-gradient(90deg,var(--gold),var(--gold-light)); }
 
+  /* ── TELEGRAM CONNECT ── */
+  .tg-section { display:flex; align-items:center; justify-content:space-between;
+                flex-wrap:wrap; gap:12px; }
+  .tg-status-badge { display:inline-flex; align-items:center; gap:6px;
+                     padding:5px 12px; border-radius:20px; font-size:0.83rem; font-weight:600; }
+  .tg-status-badge.linked   { background:rgba(92,186,106,0.15); color:#5cba6a;
+                               border:1px solid rgba(92,186,106,0.3); }
+  .tg-status-badge.unlinked { background:rgba(255,255,255,0.07); color:rgba(245,240,232,0.55);
+                               border:1px solid rgba(255,255,255,0.1); }
+  .tg-btn { padding:7px 18px; border-radius:6px; font-size:0.85rem; font-weight:700;
+            cursor:pointer; transition:background 0.15s; }
+  .tg-btn.connect    { background:rgba(37,171,235,0.18); color:#29b6f6;
+                       border:1px solid rgba(37,171,235,0.35); }
+  .tg-btn.connect:hover { background:rgba(37,171,235,0.3); }
+  .tg-btn.disconnect { background:rgba(255,255,255,0.07); color:rgba(245,240,232,0.55);
+                       border:1px solid rgba(255,255,255,0.15); }
+  .tg-btn.disconnect:hover { background:rgba(255,60,60,0.12); color:#f08080; }
+  .tg-link-box { margin-top:12px; padding:12px 14px; border-radius:8px;
+                 background:rgba(37,171,235,0.08); border:1px solid rgba(37,171,235,0.25); }
+  .tg-link-box p { margin:0 0 8px; font-size:0.85rem; color:rgba(245,240,232,0.8); }
+  .tg-link-box a  { color:#29b6f6; word-break:break-all; font-size:0.83rem; }
+  .tg-link-box .tg-hint { font-size:0.78rem; color:rgba(245,240,232,0.45); margin-top:6px; }
+
   /* ── STUDENTS OVERVIEW ── */
   .students-group {
     background: rgba(0,0,0,0.25); border: 1px solid rgba(201,168,76,0.2);
@@ -3493,17 +3516,20 @@ async function loadProfile() {
   const container = document.getElementById('profile-container');
   container.innerHTML = `<div class="empty-state"><div class="icon">👤</div><p>Loading…</p></div>`;
 
-  const [lesRes, topRes, statusRes, quipRes] = await Promise.all([
+  const [lesRes, topRes, statusRes, quipRes, meRes] = await Promise.all([
     fetch(API + '/lessons'),
     fetch(API + '/topics'),
     fetch(API + '/attempts/my-status'),
     fetch(API + '/quips/unlocked'),
+    fetch('/auth/me'),
   ]);
   const lessons  = await lesRes.json();
   const topMeta  = {};
   (await topRes.json()).forEach(t => { topMeta[t.topic] = t; });
   const myStatus = await statusRes.json();
   const unlocked = await quipRes.json();
+  const meData   = await meRes.json();
+  const tgLinked = meData && meData.telegram_linked;
 
   // Homework lessons visible to this user
   const hwLessons = lessons.filter(l => l.topic && topMeta[l.topic] && topMeta[l.topic].homework);
@@ -3577,7 +3603,47 @@ async function loadProfile() {
       <div class="profile-progress-track">
         <div class="profile-progress-fill" style="width:${mdxPct}%"></div>
       </div>
+    </div>
+
+    <div class="profile-section" id="tg-section">
+      <div class="profile-section-title">Notifications</div>
+      <div class="tg-section">
+        <span class="tg-status-badge ${tgLinked ? 'linked' : 'unlinked'}">
+          ${tgLinked ? '✓ Telegram connected' : '○ Telegram not connected'}
+        </span>
+        ${tgLinked
+          ? `<button class="tg-btn disconnect" onclick="tgDisconnect()">Disconnect</button>`
+          : `<button class="tg-btn connect"    onclick="tgConnect()">Connect Telegram</button>`}
+      </div>
+      <div id="tg-link-box"></div>
     </div>`;
+}
+
+async function tgConnect() {
+  const res  = await fetch(API + '/user/telegram/link', { method: 'POST' });
+  const data = await res.json();
+  const box  = document.getElementById('tg-link-box');
+  if (!box) return;
+  if (data.link) {
+    box.innerHTML = `
+      <div class="tg-link-box">
+        <p>Tap the button to open Telegram and link your account:</p>
+        <a href="${escHtml(data.link)}" target="_blank" rel="noopener">
+          ✈ Open Telegram to connect
+        </a>
+        <p class="tg-hint">Once linked, refresh this page to see the updated status.<br>
+          You can also send /stop to the bot at any time to unsubscribe.</p>
+      </div>`;
+  } else {
+    box.innerHTML = `<div class="tg-link-box">
+      <p style="color:#f08080;">Bot not configured. Ask your teacher to set TELEGRAM_BOT_USERNAME.</p>
+    </div>`;
+  }
+}
+
+async function tgDisconnect() {
+  await fetch(API + '/user/telegram', { method: 'DELETE' });
+  loadProfile();
 }
 
 // ═══════════════════════════════════════════════════════
