@@ -30,6 +30,7 @@ RANK_MAP   = {'A': Rank.RA, 'K': Rank.RK, 'Q': Rank.RQ, 'J': Rank.RJ,
 SUIT_BACK  = {Denom.spades:'S', Denom.hearts:'H',
               Denom.diamonds:'D', Denom.clubs:'C', Denom.nt:'N'}
 RANK_BACK  = {v: k for k, v in RANK_MAP.items()}
+RANK_ORD   = 'AKQJT98765432'   # index 0 = A (highest), 12 = 2 (lowest)
 
 def card_to_str(card):
     return SUIT_BACK[card.suit] + RANK_BACK[card.rank]
@@ -638,6 +639,60 @@ def remaining_to_pbn(remaining):
         hand_str(remaining.get('W', []))
     )
 
+def _defender_tiebreak(candidates, hand_cards, current_trick):
+    """
+    Bridge-heuristic tiebreaker for defenders when DDS rates multiple cards
+    equally good (same trick count).
+
+    On lead (empty trick):
+      - Ace from AK combination → best (cash the setting trick entry)
+      - Top of a touching sequence (QJ→Q, JT→J, T9→T) → prefer sequence top
+      - Small spot card (9 or lower) → lead lowest (standard low lead)
+      - Isolated unsupported honour → last resort
+
+    Following / discarding:
+      - Play the cheapest tied card (don't burn honours unnecessarily).
+    """
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # Following suit or discarding — cheapest card wins
+    if current_trick:
+        return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+
+    # ── On lead ──────────────────────────────────────────────────────────────
+    # Build a per-suit index list from the full remaining hand
+    hand_by_suit: dict = {}
+    for c in hand_cards:
+        hand_by_suit.setdefault(c[0], []).append(RANK_ORD.index(c[1]))
+    for s in hand_by_suit:
+        hand_by_suit[s].sort()      # ascending = best card first (A=0)
+
+    def lead_score(card):
+        suit   = card[0]
+        ridx   = RANK_ORD.index(card[1])   # 0=A … 12=2
+        idxs   = hand_by_suit.get(suit, [])
+        if not idxs:
+            return (0, 0)
+
+        # Ace from AK: cash the honour combination
+        if ridx == 0 and 1 in idxs:
+            return (6, -ridx)
+
+        # Top of a touching sequence (highest card in suit, next lower present)
+        if ridx == idxs[0] and (ridx + 1) in idxs:
+            return (5, -ridx)
+
+        # Spot card (9 or lower, RANK_ORD index ≥ 5): lead the smallest
+        if ridx >= 5:
+            return (4, ridx)        # higher ridx = smaller card = preferred lead
+
+        # Anything else (isolated honour, middle of sequence): low priority
+        return (1, -ridx)
+
+    return max(candidates, key=lead_score)
+
+
 @app.route('/api/dds/next_move', methods=['POST'])
 def dds_next_move():
     d             = request.json
@@ -697,13 +752,12 @@ def dds_next_move():
     # want to MAXIMISE — pick the card that gives EW the most tricks.
     target_tricks = max(t for _, t in results_str)
 
-    # Among cards that achieve the target, prefer the lowest-ranked card
-    # so defenders don't burn honours unnecessarily.
-    # rank_order[0]='A' (highest) … rank_order[12]='2' (lowest).
-    # max by index picks the card whose rank sits furthest right = lowest rank.
-    rank_order    = 'AKQJT98765432'
+    # Among DDS-equivalent cards apply bridge defensive heuristics:
+    # - On lead: prefer top of sequence, A from AK, low from small cards
+    # - Following: cheapest card (don't burn honours)
     candidates    = [s for s, t in results_str if t == target_tricks]
-    best_card_str = max(candidates, key=lambda s: rank_order.index(s[1]))
+    defender_hand = remaining.get(next_player, [])
+    best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick)
 
     trick_str = '|'.join(f'{e["player"]}:{e["card"]}' for e in current_trick)
     app.logger.warning(f'DDS next={next_player} trick=[{trick_str}] '
