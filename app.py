@@ -263,7 +263,7 @@ def send_telegram(chat_id, text):
 
 
 def _notify_students(conn, topic_name, message):
-    """Send `message` to all students with Telegram linked who can see this topic."""
+    """Send `message` to all users with Telegram linked who can see this topic."""
     topic_row  = conn.execute('SELECT restricted FROM topics WHERE name=?',
                               (topic_name,)).fetchone()
     restricted = topic_row['restricted'] if topic_row else 0
@@ -273,13 +273,11 @@ def _notify_students(conn, topic_name, message):
             SELECT DISTINCT u.telegram_chat_id FROM users u
             JOIN user_groups ug ON ug.user_id = u.id
             JOIN topic_groups tg ON tg.group_id = ug.group_id
-            WHERE tg.topic_name = ? AND u.role = 'student'
-              AND u.telegram_chat_id IS NOT NULL
+            WHERE tg.topic_name = ? AND u.telegram_chat_id IS NOT NULL
         ''', (topic_name,)).fetchall()
     else:
         rows = conn.execute(
-            "SELECT telegram_chat_id FROM users "
-            "WHERE role='student' AND telegram_chat_id IS NOT NULL"
+            "SELECT telegram_chat_id FROM users WHERE telegram_chat_id IS NOT NULL"
         ).fetchall()
 
     for r in rows:
@@ -956,25 +954,7 @@ def save_attempt():
         (d['lesson_id'], user['username'], user['id'], tricks_made, level,
          result, score, json.dumps(play_sequence), lin_data))
     aid = cur.lastrowid
-    conn.commit()
-    # Notify teachers when a homework lesson attempt is submitted
-    lesson_row = conn.execute('SELECT title, topic FROM lessons WHERE id=?',
-                              (d['lesson_id'],)).fetchone()
-    if lesson_row and lesson_row['topic']:
-        hw = conn.execute('SELECT homework FROM topics WHERE name=?',
-                          (lesson_row['topic'],)).fetchone()
-        if hw and hw['homework']:
-            icon   = '✅' if 'Made' in result else '❌'
-            msg    = (f'{icon} <b>{user["username"]}</b> — {result}\n'
-                      f'Lesson: {lesson_row["title"]}\n'
-                      f'Topic: {lesson_row["topic"]}')
-            tchrs  = conn.execute(
-                "SELECT telegram_chat_id FROM users "
-                "WHERE role='teacher' AND telegram_chat_id IS NOT NULL"
-            ).fetchall()
-            for t in tchrs:
-                send_telegram(t['telegram_chat_id'], msg)
-    conn.close()
+    conn.commit(); conn.close()
     return jsonify({'id': aid, 'result': result, 'score': score}), 201
 
 @app.route('/api/attempts/lesson/<int:lid>', methods=['GET'])
