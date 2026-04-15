@@ -263,6 +263,68 @@
   .stu-bar-fill { background: linear-gradient(90deg,var(--gold),var(--gold-light));
                   border-radius: 3px; height: 6px; min-width: 2px; }
 
+  /* ── Student view toggle ── */
+  .stu-view-tabs {
+    display: flex; gap: 6px; margin-bottom: 20px;
+  }
+  .stu-view-tab {
+    padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; border: 1px solid rgba(201,168,76,0.3);
+    color: rgba(245,240,232,0.5); background: transparent;
+    font-family: 'Source Sans 3', sans-serif; transition: all 0.15s;
+  }
+  .stu-view-tab.active {
+    background: rgba(201,168,76,0.15); color: var(--gold);
+    border-color: rgba(201,168,76,0.6);
+  }
+
+  /* ── Lesson grid view ── */
+  .stu-grid-scroll { overflow-x: auto; }
+  .stu-grid { border-collapse: collapse; }
+  .stu-grid .sg-corner { min-width: 130px; }
+  .stu-grid .sg-topic-header {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;
+    color: rgba(245,240,232,0.4); padding: 4px 4px 2px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    text-align: center; white-space: nowrap;
+  }
+  .stu-grid .sg-lesson-header {
+    height: 90px; vertical-align: bottom; padding: 0 3px 6px;
+    position: relative;
+  }
+  .stu-grid .sg-lesson-header div {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 0.72rem; color: rgba(245,240,232,0.6); white-space: nowrap;
+    max-height: 84px; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .stu-grid .sg-name-cell {
+    padding: 6px 12px; font-weight: 600; color: var(--cream);
+    white-space: nowrap; font-size: 0.88rem;
+    position: sticky; left: 0;
+    background: rgba(15,58,28,0.97); z-index: 1;
+    border-right: 1px solid rgba(255,255,255,0.05);
+  }
+  .stu-grid tbody tr:hover .sg-name-cell { background: rgba(20,75,38,0.97); }
+  .stu-grid tbody tr:hover td { background: rgba(255,255,255,0.02); }
+  .stu-grid .sg-cell {
+    text-align: center; padding: 5px 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 1rem; line-height: 1;
+  }
+  .stu-grid tbody tr:last-child td { border-bottom: none; }
+  .sg-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; }
+  .sg-dot.first { background: var(--gold); }
+  .sg-dot.made  { background: #5cba6a; }
+  .sg-dot.down  { background: #c96060; }
+  .sg-dot.none  { background: rgba(255,255,255,0.1); }
+  .stu-grid-legend {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+    padding: 8px 12px; font-size: 0.75rem; color: rgba(245,240,232,0.5);
+    align-items: center;
+  }
+  .stu-grid-legend span { display: flex; align-items: center; gap: 5px; }
+
   /* ── FORMS ── */
   .form-card {
     background: rgba(255,255,255,0.05);
@@ -393,7 +455,7 @@
   }
   .game-info h2 {
     font-family: 'Playfair Display', serif;
-    font-size: 9rem;
+    font-size: 4.5rem;
     color: var(--gold);
     line-height: 1;
   }
@@ -600,6 +662,18 @@
     font-weight: 700;
     text-transform: uppercase;
   }
+
+  /* ── CLAIM BUTTON ── */
+  #claim-btn {
+    padding: 6px 14px; font-size: 0.78rem; font-weight: 700;
+    border: 1px solid rgba(201,168,76,0.5); border-radius: 6px;
+    background: rgba(201,168,76,0.12); color: var(--gold);
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+  }
+  #claim-btn:hover:not(:disabled) { background: rgba(201,168,76,0.25); }
+  #claim-btn:disabled { opacity: 0.5; cursor: default; }
 
   /* ── RESULT OVERLAY ── */
   .result-overlay {
@@ -973,11 +1047,166 @@
   .mockdex-entry.unlocked-down .mockdex-text { color: rgba(245,240,232,0.85); }
   .mockdex-entry.unlocked-made .mockdex-text { color: rgba(245,240,232,0.85); }
 
+  /* ── HOLO entries ── */
+  .mockdex-entry.holo.unlocked-down,
+  .mockdex-entry.holo.unlocked-made {
+    background-image: linear-gradient(#0f3a1c, #0f3a1c),
+                      linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-origin: padding-box, border-box;
+    background-clip:  padding-box, border-box;
+    background-size:  auto, 300% 100%;
+    border: 1px solid transparent;
+    animation: holo-border 4s linear infinite;
+  }
+  .mockdex-entry.holo.unlocked-down .mockdex-text,
+  .mockdex-entry.holo.unlocked-made .mockdex-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem;
+  }
+  .holo-badge {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; flex-shrink: 0; margin-left: auto; padding-left: 8px;
+    background: linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-size: 300% 100%; animation: holo-badge-shift 3s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-holo-badge {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-bottom: 12px;
+    background: linear-gradient(90deg, #c9a84c, #e879a0, #79b8e8, #7ee8a2, #c9a84c);
+    background-size: 300% 100%; animation: holo-badge-shift 3s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  @keyframes holo-border {
+    0%   { background-position: 0 0, 0% 50%; }
+    100% { background-position: 0 0, 300% 50%; }
+  }
+  @keyframes holo-badge-shift {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  /* ── Game auction panel ──────────────────────────────── */
+  .game-auction-panel {
+    max-width: 680px; width: 100%; margin-top: 10px;
+    border: 1px solid rgba(201,168,76,0.2); border-radius: 8px;
+    background: rgba(0,0,0,0.3); overflow: hidden;
+  }
+  .game-auction-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; cursor: pointer; user-select: none;
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: rgba(245,240,232,0.55);
+    transition: color 0.15s;
+  }
+  .game-auction-toggle:hover { color: var(--gold-light); }
+  .game-auction-toggle .gat-arrow { font-size: 0.65rem; transition: transform 0.2s; }
+  .game-auction-toggle.open .gat-arrow { transform: rotate(180deg); }
+  .game-auction-body {
+    padding: 0 16px 14px; overflow-x: auto;
+  }
+  .game-auction-body .auction-table { font-size: 0.82rem; }
+  .game-auction-body .auction-table th {
+    padding: 3px 14px; color: var(--gold); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+  .game-auction-body .auction-table td { padding: 4px 14px; min-width: 52px; text-align: center; }
+  .game-auction-body .auction-table td.bid-pass  { color: rgba(245,240,232,0.35); font-style: italic; }
+  .game-auction-body .auction-table td.bid-dbl   { color: #e87979; font-weight: 700; }
+  .game-auction-body .auction-table td.bid-rdbl  { color: #79b8e8; font-weight: 700; }
+  .game-auction-body .auction-table td.bid-bid   { color: var(--cream); font-weight: 600; }
+
   /* suit colors inline */
   .s { color: #cccccc; }
   .h { color: #ff6666; }
   .d { color: #e07820; }
   .c { color: #aaaaaa; }
+
+  /* ── Auction / Bidding Calculator ───────────────────── */
+  .auction-toggle-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px; cursor: pointer; user-select: none;
+  }
+  .auction-toggle-row input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+  }
+  .auction-toggle-row span {
+    font-size: 0.85rem; color: var(--gold-light); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .auction-section {
+    border: 1px solid rgba(201,168,76,0.2); border-radius: 6px;
+    padding: 16px; margin-bottom: 18px; background: rgba(0,0,0,0.15);
+  }
+  .auction-dealer-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .auction-dealer-row label {
+    font-size: 0.8rem; color: var(--gold-light); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .auction-dealer-row select {
+    padding: 5px 10px; background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.3); border-radius: 4px;
+    color: var(--cream); font-size: 0.85rem;
+  }
+  .auction-table-wrap { margin-bottom: 12px; overflow-x: auto; }
+  .auction-table { border-collapse: collapse; min-width: 240px; font-size: 0.85rem; }
+  .auction-table th {
+    padding: 4px 14px; text-align: center; color: var(--gold);
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+  }
+  .auction-table td { padding: 5px 14px; text-align: center; min-width: 55px; }
+  .auction-table td.bid-pass  { color: rgba(245,240,232,0.4); font-style: italic; }
+  .auction-table td.bid-dbl   { color: #e87979; font-weight: 700; }
+  .auction-table td.bid-rdbl  { color: #79b8e8; font-weight: 700; }
+  .auction-table td.bid-bid   { color: var(--cream); font-weight: 600; }
+  .auction-table td.bid-last  { background: rgba(201,168,76,0.12); border-radius: 3px; }
+  .auction-empty {
+    color: rgba(245,240,232,0.3); font-size: 0.8rem; font-style: italic;
+    padding: 8px 0; text-align: center;
+  }
+  .bid-pad { display: flex; flex-direction: column; gap: 6px; }
+  .bid-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+  .bid-col-header {
+    text-align: center; font-size: 0.7rem; color: rgba(245,240,232,0.45);
+    padding-bottom: 2px; font-weight: 600;
+  }
+  .bid-btn {
+    padding: 7px 2px; border: 1px solid rgba(201,168,76,0.2); border-radius: 4px;
+    background: rgba(0,0,0,0.2); color: var(--cream); font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; text-align: center;
+    transition: background 0.12s, border-color 0.12s;
+    font-family: 'Source Sans 3', sans-serif;
+  }
+  .bid-btn:hover { background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.5); }
+  .bid-btn.suit-C { color: rgba(245,240,232,0.55); }
+  .bid-btn.suit-D { color: #d4895c; }
+  .bid-btn.suit-H { color: #d46060; }
+  .bid-btn.suit-S { color: var(--cream); }
+  .bid-btn.suit-N { color: var(--gold); }
+  .bid-special-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 3px; }
+  .bid-btn.pass-btn { color: rgba(245,240,232,0.5); }
+  .bid-btn.dbl-btn  { color: #e87979; border-color: rgba(232,121,121,0.25); }
+  .bid-btn.dbl-btn:hover  { background: rgba(232,121,121,0.1); border-color: #e87979; }
+  .bid-btn.rdbl-btn { color: #79b8e8; border-color: rgba(121,184,232,0.25); }
+  .bid-btn.rdbl-btn:hover { background: rgba(121,184,232,0.1); border-color: #79b8e8; }
+  .bid-actions-row { display: flex; gap: 6px; }
+  .bid-util-btn {
+    padding: 6px 14px; border: 1px solid rgba(201,168,76,0.25); border-radius: 4px;
+    background: rgba(0,0,0,0.2); color: rgba(245,240,232,0.6); font-size: 0.78rem;
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.12s;
+  }
+  .bid-util-btn:hover { background: rgba(201,168,76,0.08); color: var(--gold-light); }
 </style>
 </head>
 <body>
@@ -1122,6 +1351,38 @@
       <textarea id="explanation" placeholder="What should students learn from this hand? What is the key play?"></textarea>
     </div>
 
+    <label class="auction-toggle-row" for="auction-toggle">
+      <input type="checkbox" id="auction-toggle" onchange="toggleAuctionSection()">
+      <span>Include Auction / Bidding</span>
+    </label>
+
+    <div class="auction-section" id="auction-section" style="display:none;">
+      <div class="auction-dealer-row">
+        <label for="auction-dealer">Dealer:</label>
+        <select id="auction-dealer" onchange="renderAuction()">
+          <option value="N">North</option>
+          <option value="E">East</option>
+          <option value="S">South</option>
+          <option value="W">West</option>
+        </select>
+      </div>
+      <div class="auction-table-wrap" id="auction-display">
+        <div class="auction-empty">No bids yet — use the pad below.</div>
+      </div>
+      <div class="bid-pad">
+        <div class="bid-grid" id="bid-grid"></div>
+        <div class="bid-special-row">
+          <button class="bid-btn pass-btn" onclick="addBid('p')">Pass</button>
+          <button class="bid-btn dbl-btn"  onclick="addBid('X')">Dbl</button>
+          <button class="bid-btn rdbl-btn" onclick="addBid('XX')">Rdbl</button>
+        </div>
+        <div class="bid-actions-row">
+          <button class="bid-util-btn" onclick="undoBid()">↩ Undo</button>
+          <button class="bid-util-btn" onclick="clearAuction()">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+
     <div style="display:flex; gap:12px; margin-top:8px;">
       <button class="btn btn-primary" id="save-lesson-btn" onclick="createLesson()">💾 Save Lesson</button>
       <button class="btn btn-secondary" onclick="loadSampleHand()">🎲 Load Sample Hand</button>
@@ -1238,11 +1499,12 @@
       <h2 id="game-title">—</h2>
       <p id="game-subtitle">—</p>
     </div>
-    <div style="display:flex; align-items:center; gap:20px;">
+    <div style="display:flex; align-items:center; gap:12px;">
       <div class="score-display">
         <div class="tricks" id="tricks-display">0 / 0</div>
         <div class="tricks-label">Tricks Needed / Target</div>
       </div>
+      <button id="claim-btn" style="display:none;" onclick="checkClaim()">✋ Claim</button>
       <button class="btn btn-secondary" style="font-size:0.8rem;" onclick="showPage('lessons')">← Back</button>
     </div>
   </div>
@@ -1291,8 +1553,17 @@
   </div>
   </div><!-- /.bridge-table-wrap -->
 
+  <!-- Auction panel (shown if lesson has auction data) -->
+  <div class="game-auction-panel" id="game-auction-panel" style="display:none;">
+    <div class="game-auction-toggle" id="game-auction-toggle" onclick="toggleGameAuction()">
+      <span>🃏 Auction</span>
+      <span class="gat-arrow">▼</span>
+    </div>
+    <div class="game-auction-body" id="game-auction-body" style="display:none;"></div>
+  </div>
+
   <!-- Explanation panel -->
-  <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:16px; padding:16px 20px;
+  <div id="explanation-panel" style="max-width:680px; width:100%; margin-top:10px; padding:16px 20px;
     background:rgba(0,0,0,0.3); border:1px solid rgba(201,168,76,0.2); border-radius:8px;
     font-size:0.85rem; color:rgba(245,240,232,0.7); display:none;">
     <strong style="color:var(--gold);">📖 Teaching Note:</strong>
@@ -1322,6 +1593,7 @@
 <div class="result-overlay" id="result-overlay">
   <div class="result-box" id="result-box">
     <p id="result-heading" style="font-size:0.9rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; opacity:0.7; margin-bottom:16px;">—</p>
+    <p id="result-holo-badge" class="result-holo-badge" style="display:none;">✦ HOLO ROAST</p>
     <p id="result-quip" style="font-family:'Playfair Display',serif; font-size:1.6rem; line-height:1.4; color:var(--cream); margin:0;">—</p>
     <div class="result-buttons">
       <button class="btn btn-secondary" onclick="playAgain()">▶ Play Again</button>
@@ -1339,6 +1611,9 @@
     Every roast and compliment you encounter is recorded here. Keep playing to unlock them all.
     Locked entries are shown as <strong style="letter-spacing:0.1em;">???</strong>.
   </p>
+  <div id="mdx-teacher-toolbar" style="display:none; margin-bottom:16px;">
+    <button id="mdx-preview-btn" class="btn" style="font-size:0.8rem; padding:6px 14px; border:1px solid rgba(136,200,136,0.4); color:#88cc88; background:rgba(136,200,136,0.08); border-radius:6px;" onclick="toggleMdxPreview()">👁 Preview All (Teacher)</button>
+  </div>
   <div class="mockdex-summary">
     <div class="mockdex-stat-block">
       <div class="mockdex-stat-label">💀 Roasts unlocked</div>
@@ -1373,6 +1648,10 @@
 ══════════════════════════════════════════════════════ -->
 <div class="page" id="students-page">
   <div class="page-title">Student Overview</div>
+  <div class="stu-view-tabs" id="stu-view-tabs" style="display:none;">
+    <button class="stu-view-tab active" onclick="setStudentView('summary')">📊 Summary</button>
+    <button class="stu-view-tab" onclick="setStudentView('lessons')">📋 Lessons</button>
+  </div>
   <div id="students-container">
     <div class="empty-state"><div class="icon">🎓</div><p>Loading…</p></div>
   </div>
@@ -1432,24 +1711,25 @@ const QUIPS_MADE = [
   "Congratulations. The bar was on the floor and you cleared it handsomely.",
   "Made it! Try not to let it go to your head. There's another hand to ruin yet.",
   "Good result. We'll call it controlled chaos and leave it at that.",
+  "lcy slow-claps...",
 ];
 
 const QUIPS_DOWN = [
   "Down. The robot sends its condolences. And its pity.",
   "The cards didn't beat you. You beat you.",
-  "That line of play has a name: creative. Not a compliment.",
+  "",
   "The double dummy solver had you making this. A moment of silence.",
   "Bold. Wrong, but mostly bold.",
   "Congratulations on finding the one losing line in a sea of winners.",
   "Some declarers are born great. Others build character through suffering.",
   "Even the robot felt bad. Then it remembered it has no feelings.",
-  "The opening lead was not actually the problem here.",
-  "Not to worry. Hubris is a very human quality.",
-  "That was a fascinating approach. Fascinating in the way a car crash is fascinating.",
+  "",
+  "",
+  "Are we playing the same game here? The game I play is called Bridge. The game you play is called Jumping off the Bridge. Same same but different?",
   "The dummy is not legally allowed to comment. Lucky for you.",
-  "The robot has played a million hands and has never seen that line. It's making notes.",
+  "",
   "Down. Don't worry, the robot won't tell anyone. It will simply remember. Forever.",
-  "In bridge, we call that a learning experience. You're learning a lot today.",
+  "",
   "That play will haunt the robot's training data for years. Congratulations on your legacy.",
   "Down. The cards were not kind. Your choices, however, were unkind to yourself.",
   "The robot defended perfectly. You did not play perfectly. Spot the difference.",
@@ -1459,12 +1739,12 @@ const QUIPS_DOWN = [
   "You had every advantage and chose not to use it. Technically impressive.",
   "The robot suggests a brief but honest conversation with yourself. No rush.",
   "That was not a plan. That was a hope. Hope is not a strategy.",
-  "The defence was average. Your declarer play was below average. Defend less, play more.",
+  "",
   "The kindest thing to say is nothing. So: nothing.",
   "The hand was described as routine. Your play was anything but.",
   "You squandered your advantages like a millionaire at a casino. Except you weren't winning.",
   "There were three ways to make this contract. You found the fourth way.",
-  "The robot's confidence in you peaked before the first card was played.",
+  "You butchered the contract like lcy butchered his p1 art homework. At least he got a D. Your declarer play is an F here.",
   "Down. A post-mortem would be helpful here, though perhaps confronting.",
   "The dummy came down and the hand was over. You just hadn't realised it yet.",
   "At no point was the outcome in doubt. Sadly, you were also not in doubt.",
@@ -1522,21 +1802,35 @@ const QUIPS_DOWN = [
   "Down on a hand that a beginner would make by accident. Remarkable self-sabotage.",
   "You hesitated at the key moment and the hand hesitated right back.",
   "The robot has run the simulations. All of them make it. This is fine.",
-  "Your timing was off by the smallest margin. In bridge, the smallest margin is everything.",
+  "",
   "You picked the wrong moment to be clever and the wrong moment to be straightforward.",
   "Down. The road to defeat was paved with good intentions and small, confident errors.",
   "The robot would describe this as unforced. Not the error — the commitment to it.",
-  "You had a two-way guess and found the third way.",
+  "",
   "The danger was apparent in retrospect. It was also apparent at the time.",
   "The hand was there to be made. It was also there to be lost. You chose.",
   "The robot notes it was a 100% line, not a 99% line. The 1% is looking smug.",
   "You misread the end position. To be fair, the beginning position was also misread.",
   "Down. The defence didn't deserve that. You gave it to them anyway. Very generous.",
-  "Technically, the contract was never cold. Ethically, it should have been.",
   "The robot admires your confidence. It does not admire your card play. Both things are true.",
-  "You executed the plan perfectly. The plan was wrong.",
+  "The kids at Ke Xin's school could do better.",
   "Down. Don't worry. The robot has already forgotten. No it hasn't.",
+  "Down. The contract was cold, the dummy was helpful, and the result was this.",
+  "The robot has a word for that line of play. The word is unprintable in polite company.",
+  "You played for the layout you wanted, not the one that was there.",
+  "The finesse was wrong. The alternative was right. One of these required counting to find.",
+  "The hand rewarded patience at every step. You were not patient at any step.",
+  "Down. You gave the defence a discard they could never have engineered themselves. Generous.",
+  "You attacked the right suit at the wrong time and the wrong suit at the right time.",
+  "The robot's suggestion would have been to count losers before playing. A thought for next time.",
+  "Bridge is a game of inference and deduction. Today, neither was applied.",
+  "Down. The dummy's hand was a treasure map. You dug in the wrong spot.",
+  "The robot has no desire to make you feel bad. The result is doing that without assistance.",
 ];
+
+// 0-indexed positions of human-written holo roasts/compliments
+const QUIPS_DOWN_HOLO = new Set([2, 8, 9, 10, 12, 14, 24, 29, 87, 91, 98]);
+const QUIPS_MADE_HOLO = new Set([20]);
 
 const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
 const SUIT_NAMES   = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
@@ -1841,6 +2135,108 @@ const HAND_INPUT_IDS = [
 ];
 
 // ═══════════════════════════════════════════════════════
+//  AUCTION / BIDDING CALCULATOR
+// ═══════════════════════════════════════════════════════
+
+let auctionBids = [];
+const BID_SUIT_SYMS = { C: '♣', D: '♦', H: '♥', S: '♠', N: 'NT' };
+const BID_SUIT_CLS  = { C: 'suit-C', D: 'suit-D', H: 'suit-H', S: 'suit-S', N: 'suit-N' };
+
+function initBidGrid() {
+  const grid = document.getElementById('bid-grid');
+  if (!grid || grid.innerHTML) return;
+  let html = '';
+  ['C','D','H','S','N'].forEach(s => {
+    html += `<div class="bid-col-header">${BID_SUIT_SYMS[s]}</div>`;
+  });
+  for (let lvl = 1; lvl <= 7; lvl++) {
+    ['C','D','H','S','N'].forEach(s => {
+      const sym = s === 'N' ? 'NT' : BID_SUIT_SYMS[s];
+      html += `<button class="bid-btn ${BID_SUIT_CLS[s]}" onclick="addBid('${lvl}${s}')">${lvl}${sym}</button>`;
+    });
+  }
+  grid.innerHTML = html;
+}
+
+function toggleAuctionSection() {
+  const show = document.getElementById('auction-toggle').checked;
+  document.getElementById('auction-section').style.display = show ? '' : 'none';
+  if (show) initBidGrid();
+}
+
+function renderAuction() {
+  const dealer = document.getElementById('auction-dealer').value;
+  const seats = ['N','E','S','W'];
+  const dealerIdx = seats.indexOf(dealer);
+  const el = document.getElementById('auction-display');
+
+  if (auctionBids.length === 0) {
+    el.innerHTML = '<div class="auction-empty">No bids yet — use the pad below.</div>';
+    return;
+  }
+
+  const fmtBid = (bid, isLast) => {
+    let cls, text;
+    if (bid === 'p')  { cls = 'bid-pass'; text = 'pass'; }
+    else if (bid === 'X')  { cls = 'bid-dbl';  text = 'Dbl'; }
+    else if (bid === 'XX') { cls = 'bid-rdbl'; text = 'Rdbl'; }
+    else {
+      cls = 'bid-bid';
+      const s = bid.slice(1);
+      text = bid[0] + (s === 'N' ? 'NT' : BID_SUIT_SYMS[s]);
+    }
+    if (isLast) cls += ' bid-last';
+    return `<td class="${cls}">${text}</td>`;
+  };
+
+  let html = '<table class="auction-table"><thead><tr>';
+  seats.forEach((s, i) => {
+    html += `<th>${s}${i === dealerIdx ? ' *' : ''}</th>`;
+  });
+  html += '</tr></thead><tbody><tr>';
+
+  let col = dealerIdx;
+  for (let i = 0; i < dealerIdx; i++) { html += '<td></td>'; }
+
+  auctionBids.forEach((bid, idx) => {
+    if (col === 4) { html += '</tr><tr>'; col = 0; }
+    html += fmtBid(bid, idx === auctionBids.length - 1);
+    col++;
+  });
+  while (col > 0 && col < 4) { html += '<td></td>'; col++; }
+
+  html += '</tr></tbody></table>';
+  el.innerHTML = html;
+}
+
+function addBid(bid) { auctionBids.push(bid); renderAuction(); }
+function undoBid()   { if (auctionBids.length) { auctionBids.pop(); renderAuction(); } }
+function clearAuction() { auctionBids = []; renderAuction(); }
+
+function getAuctionData() {
+  if (!document.getElementById('auction-toggle').checked || !auctionBids.length) return '';
+  return JSON.stringify({ dealer: document.getElementById('auction-dealer').value, bids: auctionBids });
+}
+
+function setAuctionData(str) {
+  if (!str) {
+    document.getElementById('auction-toggle').checked = false;
+    document.getElementById('auction-section').style.display = 'none';
+    auctionBids = [];
+    return;
+  }
+  try {
+    const d = JSON.parse(str);
+    auctionBids = d.bids || [];
+    document.getElementById('auction-dealer').value = d.dealer || 'N';
+    document.getElementById('auction-toggle').checked = true;
+    document.getElementById('auction-section').style.display = '';
+    initBidGrid();
+    renderAuction();
+  } catch(e) { auctionBids = []; }
+}
+
+// ═══════════════════════════════════════════════════════
 //  CREATE LESSON
 // ═══════════════════════════════════════════════════════
 
@@ -1871,7 +2267,7 @@ async function createLesson() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead })
+      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead, auction: getAuctionData() })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Server error');
@@ -1902,6 +2298,7 @@ async function editLesson(id) {
   document.getElementById('contract').value = lesson.contract;
   document.getElementById('declarer').value = lesson.declarer;
   document.getElementById('lead').value = lesson.lead;
+  setAuctionData(lesson.auction || '');
 
   document.getElementById('create-page-title').textContent = 'Edit Lesson';
   document.getElementById('save-lesson-btn').textContent = '💾 Update Lesson';
@@ -1914,6 +2311,7 @@ function newLesson() {
   document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
   ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
     .forEach(id => document.getElementById(id).value = '');
+  setAuctionData('');
   showPage('create');
 }
 
@@ -1966,6 +2364,63 @@ function startGame() {
   state.studentName = name;
   document.getElementById('student-form').classList.remove('show');
   initGame(state.lesson);
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME AUCTION DISPLAY
+// ═══════════════════════════════════════════════════════
+
+function renderGameAuction(lesson) {
+  const panel  = document.getElementById('game-auction-panel');
+  const body   = document.getElementById('game-auction-body');
+  const toggle = document.getElementById('game-auction-toggle');
+  if (!lesson.auction) { panel.style.display = 'none'; return; }
+
+  let data;
+  try { data = JSON.parse(lesson.auction); } catch(e) { panel.style.display = 'none'; return; }
+  if (!data.bids || !data.bids.length) { panel.style.display = 'none'; return; }
+
+  const seats = ['N','E','S','W'];
+  const dealerIdx = seats.indexOf(data.dealer || 'N');
+
+  const fmtBid = bid => {
+    if (bid === 'p')  return { text: 'pass', cls: 'bid-pass' };
+    if (bid === 'X')  return { text: 'Dbl',  cls: 'bid-dbl'  };
+    if (bid === 'XX') return { text: 'Rdbl', cls: 'bid-rdbl' };
+    const s = bid.slice(1);
+    return { text: bid[0] + (s === 'N' ? 'NT' : BID_SUIT_SYMS[s]), cls: 'bid-bid' };
+  };
+
+  let html = '<table class="auction-table"><thead><tr>';
+  seats.forEach((s, i) => {
+    html += `<th>${s}${i === dealerIdx ? ' *' : ''}</th>`;
+  });
+  html += '</tr></thead><tbody><tr>';
+
+  let col = dealerIdx;
+  for (let i = 0; i < dealerIdx; i++) html += '<td></td>';
+  data.bids.forEach(bid => {
+    if (col === 4) { html += '</tr><tr>'; col = 0; }
+    const { text, cls } = fmtBid(bid);
+    html += `<td class="${cls}">${text}</td>`;
+    col++;
+  });
+  while (col > 0 && col < 4) { html += '<td></td>'; col++; }
+  html += '</tr></tbody></table>';
+
+  body.innerHTML = html;
+  panel.style.display = '';
+  // Keep collapsed by default; toggle handles open/close
+  body.style.display = 'none';
+  toggle.classList.remove('open');
+}
+
+function toggleGameAuction() {
+  const body   = document.getElementById('game-auction-body');
+  const toggle = document.getElementById('game-auction-toggle');
+  const open   = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  toggle.classList.toggle('open', open);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2039,6 +2494,7 @@ function initGame(lesson) {
   } else {
     document.getElementById('explanation-panel').style.display = 'none';
   }
+  renderGameAuction(lesson);
 
   // Label the seats
   PLAYERS.forEach(p => {
@@ -2092,6 +2548,7 @@ async function resumeGame(lesson, saved) {
   } else {
     document.getElementById('explanation-panel').style.display = 'none';
   }
+  renderGameAuction(lesson);
 
   PLAYERS.forEach(p => {
     const label = document.getElementById(p + '-label');
@@ -2114,6 +2571,60 @@ async function resumeGame(lesson, saved) {
 // ═══════════════════════════════════════════════════════
 //  GAME LOGIC
 // ═══════════════════════════════════════════════════════
+
+// ── Claim ────────────────────────────────────────────────────────────────────
+
+function updateClaimButton() {
+  const btn = document.getElementById('claim-btn');
+  if (!btn) return;
+  const show = !state.gameOver
+    && state.currentTrick.length === 0
+    && isDeclarerOrDummy(state.trickLeader)
+    && (state.nsTricks + state.ewTricks) < 13;
+  btn.style.display = show ? '' : 'none';
+  btn.disabled = false;
+  btn.textContent = '✋ Claim';
+}
+
+async function checkClaim() {
+  const btn = document.getElementById('claim-btn');
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(API + '/claim/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hands:       state.hands,
+        ns_made:     state.nsTricks,
+        ew_made:     state.ewTricks,
+        contract:    state.contract,
+        declarer:    state.declarer,
+        next_leader: state.trickLeader
+      })
+    });
+    const data = await res.json();
+
+    if (data.can_claim) {
+      // Award all remaining tricks to declarer's side
+      const remaining      = 13 - state.nsTricks - state.ewTricks;
+      const declarerIsNS   = state.declarer === 'N' || state.declarer === 'S';
+      if (declarerIsNS) state.nsTricks += remaining;
+      else              state.ewTricks += remaining;
+      btn.style.display = 'none';
+      await finishGame();
+    } else {
+      toast(`Cannot claim — contract is only ${data.pct}% secure. Keep playing.`);
+      btn.disabled = false;
+      btn.textContent = '✋ Claim';
+    }
+  } catch(e) {
+    toast('Claim check failed — try again.');
+    btn.disabled = false;
+    btn.textContent = '✋ Claim';
+  }
+}
 
 function removeCard(player, cardStr) {
   state.hands[player] = state.hands[player].filter(c => c !== cardStr);
@@ -2151,7 +2662,8 @@ function getPlayOrder(leader) {
 async function handleNextPlay(player) {
   renderTable();
   updateTricksDisplay();
-  
+  updateClaimButton();
+
   if (isDeclarerOrDummy(player)) {
     // Human plays (declarer or dummy)
     // Declarer controls both their hand and dummy
@@ -2286,7 +2798,9 @@ async function humanPlaysCard(player, card) {
 }
 
 async function playCard(player, card, isHuman) {
-  // Animate
+  // Hide claim button once a card is played in the trick
+  document.getElementById('claim-btn').style.display = 'none';
+
   removeCard(player, card);
   state.currentTrick.push({ player, card });
   state.allPlayedCards.push({ player, card });
@@ -2416,10 +2930,15 @@ async function finishGame() {
   document.getElementById('result-heading').textContent =
     diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
   
-  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
   const quipType = diff >= 0 ? 'made' : 'down';
-  const quipIdx  = Math.floor(Math.random() * quipList.length);
-  document.getElementById('result-quip').textContent = quipList[quipIdx];
+  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
+  const holoSet  = diff >= 0 ? QUIPS_MADE_HOLO : QUIPS_DOWN_HOLO;
+  const pool = quipList.map((q, i) => ({q, i})).filter(({q}) => q.length > 0);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const quipIdx = pick.i;
+  const isHolo = holoSet.has(quipIdx);
+  document.getElementById('result-quip').textContent = pick.q;
+  document.getElementById('result-holo-badge').style.display = isHolo ? '' : 'none';
   if (appUser) {
     fetch(API + '/quips/unlock', {
       method: 'POST',
@@ -2892,42 +3411,77 @@ async function deleteUser(id, username) {
 //  MOCKÉDEX
 // ═══════════════════════════════════════════════════════
 
+let mdxPreviewAll = false;
+
+function toggleMdxPreview() {
+  mdxPreviewAll = !mdxPreviewAll;
+  const btn = document.getElementById('mdx-preview-btn');
+  btn.textContent = mdxPreviewAll ? '🔒 My Unlocks' : '👁 Preview All (Teacher)';
+  btn.style.borderColor = mdxPreviewAll ? 'rgba(201,168,76,0.5)' : 'rgba(136,200,136,0.4)';
+  btn.style.color = mdxPreviewAll ? '#c9a84c' : '#88cc88';
+  btn.style.background = mdxPreviewAll ? 'rgba(201,168,76,0.12)' : 'rgba(136,200,136,0.08)';
+  loadMockdex();
+}
+
 async function loadMockdex() {
+  const isTeacher = appUser && appUser.role === 'teacher';
+  document.getElementById('mdx-teacher-toolbar').style.display = isTeacher ? '' : 'none';
+
   const res = await fetch(API + '/quips/unlocked');
   const unlocked = await res.json();
-  const unlockedDown = new Set(unlocked.down);
-  const unlockedMade = new Set(unlocked.made);
+
+  let unlockedDown, unlockedMade;
+  if (isTeacher && mdxPreviewAll) {
+    // Preview mode: treat all non-empty entries as unlocked
+    unlockedDown = new Set(QUIPS_DOWN.map((q, i) => q ? i : -1).filter(i => i >= 0));
+    unlockedMade = new Set(QUIPS_MADE.map((q, i) => q ? i : -1).filter(i => i >= 0));
+  } else {
+    unlockedDown = new Set(unlocked.down);
+    unlockedMade = new Set(unlocked.made);
+  }
 
   // Update summary stats
+  const downTotal = QUIPS_DOWN.filter(q => q).length;
+  const madeTotal = QUIPS_MADE.filter(q => q).length;
+  const downUnlocked = isTeacher && mdxPreviewAll ? downTotal : unlockedDown.size;
+  const madeUnlocked = isTeacher && mdxPreviewAll ? madeTotal : unlockedMade.size;
   document.getElementById('mdx-down-count').innerHTML =
-    `${unlockedDown.size} <span>/ ${QUIPS_DOWN.length}</span>`;
+    `${downUnlocked} <span>/ ${downTotal}</span>`;
   document.getElementById('mdx-made-count').innerHTML =
-    `${unlockedMade.size} <span>/ ${QUIPS_MADE.length}</span>`;
+    `${madeUnlocked} <span>/ ${madeTotal}</span>`;
   document.getElementById('mdx-down-bar').style.width =
-    Math.round(unlockedDown.size / QUIPS_DOWN.length * 100) + '%';
+    (downTotal ? Math.round(downUnlocked / downTotal * 100) : 0) + '%';
   document.getElementById('mdx-made-bar').style.width =
-    Math.round(unlockedMade.size / QUIPS_MADE.length * 100) + '%';
+    (madeTotal ? Math.round(madeUnlocked / madeTotal * 100) : 0) + '%';
 
-  const renderSection = (title, quips, unlockedSet, typeClass) => {
+  const renderSection = (title, quips, unlockedSet, typeClass, holoSet) => {
+    const pad = String(quips.length).length;
     const entries = quips.map((q, i) => {
+      if (!q) return ''; // skip empty placeholder slots
       const seen = unlockedSet.has(i);
-      return `<div class="mockdex-entry ${seen ? 'unlocked-' + typeClass : 'locked'}">
-        <span class="mockdex-num">#${String(i + 1).padStart(String(quips.length).length, '0')}</span>
+      const isHolo = holoSet.has(i);
+      const holoClass = isHolo ? ' holo' : '';
+      const holoBadge = (isHolo && seen) ? '<span class="holo-badge">✦ HOLO</span>' : '';
+      return `<div class="mockdex-entry${holoClass} ${seen ? 'unlocked-' + typeClass : 'locked'}">
+        <span class="mockdex-num">#${String(i + 1).padStart(pad, '0')}</span>
         <span class="mockdex-text">${seen ? escHtml(q) : '???'}</span>
+        ${holoBadge}
       </div>`;
     }).join('');
+    const visibleTotal   = quips.filter(q => q).length;
+    const unlockedCount  = quips.filter((q, i) => q && unlockedSet.has(i)).length;
     return `<div class="mockdex-section">
       <div class="mockdex-section-header">
         ${title}
-        <span class="mdx-count">${unlockedSet.size} / ${quips.length} unlocked</span>
+        <span class="mdx-count">${unlockedCount} / ${visibleTotal} unlocked</span>
       </div>
       <div class="mockdex-list">${entries}</div>
     </div>`;
   };
 
   document.getElementById('mockdex-container').innerHTML =
-    renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down') +
-    renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made');
+    renderSection('💀 Roasts',      QUIPS_DOWN, unlockedDown, 'down', QUIPS_DOWN_HOLO) +
+    renderSection('🌸 Compliments', QUIPS_MADE, unlockedMade, 'made', QUIPS_MADE_HOLO);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2968,7 +3522,7 @@ async function loadProfile() {
   // Mockédex
   const unlockedMade = (unlocked.made || []).length;
   const unlockedDown = (unlocked.down || []).length;
-  const quipTotal    = QUIPS_MADE.length + QUIPS_DOWN.length;
+  const quipTotal    = QUIPS_MADE.filter(q => q).length + QUIPS_DOWN.filter(q => q).length;
   const mdxPct       = quipTotal > 0 ? Math.round((unlockedMade + unlockedDown) / quipTotal * 100) : 0;
 
   container.innerHTML = `
@@ -3011,11 +3565,11 @@ async function loadProfile() {
       <div class="profile-section-title">Mockédex</div>
       <div class="profile-stats">
         <div class="profile-stat">
-          <div class="profile-stat-value">${unlockedDown} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_DOWN.length}</span></div>
+          <div class="profile-stat-value">${unlockedDown} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_DOWN.filter(q => q).length}</span></div>
           <div class="profile-stat-label">💀 Roasts</div>
         </div>
         <div class="profile-stat">
-          <div class="profile-stat-value">${unlockedMade} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_MADE.length}</span></div>
+          <div class="profile-stat-value">${unlockedMade} <span style="font-size:1rem;opacity:0.5;">/ ${QUIPS_MADE.filter(q => q).length}</span></div>
           <div class="profile-stat-label">🌸 Compliments</div>
         </div>
       </div>
@@ -3030,6 +3584,129 @@ async function loadProfile() {
 //  STUDENTS OVERVIEW
 // ═══════════════════════════════════════════════════════
 
+let studentViewMode = 'summary';
+let studentGroupData = [];
+
+function setStudentView(mode) {
+  studentViewMode = mode;
+  document.querySelectorAll('.stu-view-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && mode === 'summary') || (i === 1 && mode === 'lessons'));
+  });
+  renderStudents();
+}
+
+function renderStudents() {
+  const container = document.getElementById('students-container');
+  const populated = studentGroupData.filter(g => g.students.length > 0);
+  if (!populated.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No students found.</p></div>`;
+    return;
+  }
+  container.innerHTML = populated.map(g =>
+    studentViewMode === 'lessons' ? renderGroupGrid(g) : renderGroupSummary(g)
+  ).join('');
+}
+
+function renderGroupSummary(g) {
+  const rows = g.students.map(s => `
+    <tr>
+      <td class="stu-name">${escHtml(s.username)}</td>
+      <td class="stu-stat">${s.hw_total}</td>
+      <td class="stu-stat" style="color:rgba(245,240,232,0.4)">${s.hw_none}</td>
+      <td class="stu-stat" style="color:#f08080">${s.hw_down}</td>
+      <td class="stu-stat" style="color:#80e080">${s.hw_made + s.hw_first}</td>
+      <td class="stu-stat" style="color:var(--gold)">${s.hw_first}</td>
+      <td class="stu-pct-cell">
+        <div class="stu-pct-label">${s.pct}%</div>
+        <div class="stu-bar-track"><div class="stu-bar-fill" style="width:${s.pct}%"></div></div>
+      </td>
+    </tr>`).join('');
+  return `
+    <div class="students-group">
+      <div class="students-group-header">
+        <span class="students-group-name">${escHtml(g.name)}</span>
+        <span class="students-group-count">${g.students.length} student${g.students.length !== 1 ? 's' : ''} · ${g.hw_lessons.length} hw</span>
+      </div>
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th class="center" title="Total homework lessons">Total</th>
+            <th class="center" title="Not attempted">—</th>
+            <th class="center" title="Gone down">Down</th>
+            <th class="center" title="Made">✓ Made</th>
+            <th class="center" title="Made on first try">★ 1st</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderGroupGrid(g) {
+  if (!g.hw_lessons.length) {
+    return `
+      <div class="students-group">
+        <div class="students-group-header">
+          <span class="students-group-name">${escHtml(g.name)}</span>
+          <span class="students-group-count">${g.students.length} student${g.students.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div style="padding:20px; color:rgba(245,240,232,0.4); font-size:0.85rem; font-style:italic;">
+          No homework lessons assigned to this group.
+        </div>
+      </div>`;
+  }
+
+  // Group lessons by topic for spanning headers
+  const topics = [];
+  let lastTopic = null;
+  g.hw_lessons.forEach(l => {
+    if (l.topic !== lastTopic) { topics.push({ name: l.topic || '—', count: 1 }); lastTopic = l.topic; }
+    else topics[topics.length - 1].count++;
+  });
+
+  const topicRow = topics.map(t =>
+    `<th class="sg-topic-header" colspan="${t.count}">${escHtml(t.name || '—')}</th>`
+  ).join('');
+
+  const lessonRow = g.hw_lessons.map(l =>
+    `<th class="sg-lesson-header" title="${escHtml(l.title)}"><div>${escHtml(l.title)}</div></th>`
+  ).join('');
+
+  const DOT = { first: '★', made: '✓', down: '✗', none: '·' };
+  const studentRows = g.students.map(s => {
+    const cells = g.hw_lessons.map(l => {
+      const st = s.lessons[l.id] || 'none';
+      return `<td class="sg-cell" title="${escHtml(l.title)}: ${st}"><span class="sg-dot ${st}"></span></td>`;
+    }).join('');
+    return `<tr><td class="sg-name-cell">${escHtml(s.username)}</td>${cells}</tr>`;
+  }).join('');
+
+  return `
+    <div class="students-group">
+      <div class="students-group-header">
+        <span class="students-group-name">${escHtml(g.name)}</span>
+        <span class="students-group-count">${g.students.length} student${g.students.length !== 1 ? 's' : ''} · ${g.hw_lessons.length} lessons</span>
+      </div>
+      <div class="stu-grid-scroll">
+        <table class="stu-grid">
+          <thead>
+            <tr><th class="sg-corner"></th>${topicRow}</tr>
+            <tr><th class="sg-corner"></th>${lessonRow}</tr>
+          </thead>
+          <tbody>${studentRows}</tbody>
+        </table>
+        <div class="stu-grid-legend">
+          <span><span class="sg-dot first" style="display:inline-block"></span> First try</span>
+          <span><span class="sg-dot made"  style="display:inline-block"></span> Made</span>
+          <span><span class="sg-dot down"  style="display:inline-block"></span> Down</span>
+          <span><span class="sg-dot none"  style="display:inline-block"></span> Not started</span>
+        </div>
+      </div>
+    </div>`;
+}
+
 async function loadStudents() {
   if (!appUser || appUser.role !== 'teacher') return;
   const container = document.getElementById('students-container');
@@ -3040,50 +3717,10 @@ async function loadStudents() {
     container.innerHTML = `<div class="empty-state"><p>Could not load student data.</p></div>`;
     return;
   }
-  const groups = await res.json();
-
-  const populated = groups.filter(g => g.students.length > 0);
-  if (!populated.length) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No students found.</p></div>`;
-    return;
-  }
-
-  container.innerHTML = populated.map(g => {
-    const rows = g.students.map(s => `
-      <tr>
-        <td class="stu-name">${escHtml(s.username)}</td>
-        <td class="stu-stat">${s.hw_total}</td>
-        <td class="stu-stat" style="color:rgba(245,240,232,0.4)">${s.hw_none}</td>
-        <td class="stu-stat" style="color:#f08080">${s.hw_down}</td>
-        <td class="stu-stat" style="color:#80e080">${s.hw_made}</td>
-        <td class="stu-stat" style="color:var(--gold)">${s.hw_first}</td>
-        <td class="stu-pct-cell">
-          <div class="stu-pct-label">${s.pct}%</div>
-          <div class="stu-bar-track"><div class="stu-bar-fill" style="width:${s.pct}%"></div></div>
-        </td>
-      </tr>`).join('');
-    return `
-      <div class="students-group">
-        <div class="students-group-header">
-          <span class="students-group-name">${escHtml(g.name)}</span>
-          <span class="students-group-count">${g.students.length} student${g.students.length !== 1 ? 's' : ''}</span>
-        </div>
-        <table class="students-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th class="center" title="Total homework lessons">Total HW</th>
-              <th class="center" title="Not attempted">—</th>
-              <th class="center" title="Down">▼ Down</th>
-              <th class="center" title="Made">✓ Made</th>
-              <th class="center" title="First try">★ 1st Try</th>
-              <th>Progress</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-  }).join('');
+  studentGroupData = await res.json();
+  const populated = studentGroupData.filter(g => g.students.length > 0);
+  document.getElementById('stu-view-tabs').style.display = populated.length ? '' : 'none';
+  renderStudents();
 }
 
 // ═══════════════════════════════════════════════════════
