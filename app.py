@@ -34,6 +34,16 @@ SUIT_BACK  = {Denom.spades:'S', Denom.hearts:'H',
 RANK_BACK  = {v: k for k, v in RANK_MAP.items()}
 RANK_ORD   = 'AKQJT98765432'   # index 0 = A (highest), 12 = 2 (lowest)
 
+# ── BEN (Bridge Engine by Neural Networks) config ────────────────────────────
+# Models downloaded at Docker build time into /app/ben_models/
+BEN_MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ben_models')
+_BEN_MODELS:    dict = {}   # populated by _init_ben() at startup
+_BEN_RANK_IDX = {'A': 0, 'K': 1, 'Q': 2, 'J': 3, 'T': 4, '9': 5, '8': 6, '7': 7}
+_BEN_SUIT_IDX = {'S': 0, 'H': 1, 'D': 2, 'C': 3}
+_BEN_PLAYER_IDX = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
+# Opening leader is the player to the LEFT of declarer (clockwise)
+_BEN_LEFT_OF  = {'N': 'W', 'E': 'N', 'S': 'E', 'W': 'S'}
+
 def card_to_str(card):
     return SUIT_BACK[card.suit] + RANK_BACK[card.rank]
 
@@ -732,8 +742,155 @@ def remaining_to_pbn(remaining):
         hand_str(remaining.get('W', []))
     )
 
+def _ben_card_idx(card_str: str) -> int:
+    """BEN 0-31 slot index (suit*8 + rank). Returns -1 for cards below 7."""
+    suit, rank = card_str[0], card_str[1]
+    if rank not in _BEN_RANK_IDX:
+        return -1
+    return _BEN_SUIT_IDX[suit] * 8 + _BEN_RANK_IDX[rank]
+
+
+def _ben_hand_vec(cards: list) -> list:
+    """32-float binary vector: 1.0 where card is present."""
+    v = [0.0] * 32
+    for c in cards:
+        idx = _ben_card_idx(c)
+        if idx >= 0:
+            v[idx] = 1.0
+    return v
+
+
+def _ben_card_vec(card_str: str) -> list:
+    """32-float one-hot for a single card (all zeros if card below 7)."""
+    v = [0.0] * 32
+    idx = _ben_card_idx(card_str)
+    if idx >= 0:
+        v[idx] = 1.0
+    return v
+
+
+def _ben_build_input(own_hand, dummy_hand, contract,
+                     current_trick, last_trick, last_trick_leader):
+    """
+    Build the (1, 1, 298) float32 numpy array for BEN cardplay inference.
+
+    Layout (298 dims):
+      0-31   own hand           32-bit binary
+      32-63  dummy hand         32-bit binary
+      64-191 last trick         4 × 32-bit one-hot  (pad with zeros if first trick)
+      192-287 current trick     3 × 32-bit one-hot  (cards played before us)
+      288-291 last trick leader 4-bit one-hot (N/E/S/W)
+      292    contract level     float (1-7)
+      293-297 strain            5-bit one-hot (NT/S/H/D/C)
+    """
+    import numpy as np
+
+    vec = _ben_hand_vec(own_hand)                   # 0-31
+    vec.extend(_ben_hand_vec(dummy_hand))            # 32-63
+
+    # 64-191: last trick — 4 cards in play order (pad if fewer)
+    last_cards = [e['card'] for e in (last_trick or [])][:4]
+    last_cards += [None] * (4 - len(last_cards))
+    for c in last_cards:
+        vec.extend(_ben_card_vec(c) if c else [0.0] * 32)
+
+    # 192-287: current trick — up to 3 cards played so far (not including ours)
+    cur_cards = [e['card'] for e in (current_trick or [])][:3]
+    cur_cards += [None] * (3 - len(cur_cards))
+    for c in cur_cards:
+        vec.extend(_ben_card_vec(c) if c else [0.0] * 32)
+
+    # 288-291: last trick leader one-hot
+    leader_vec = [0.0] * 4
+    if last_trick_leader and last_trick_leader in _BEN_PLAYER_IDX:
+        leader_vec[_BEN_PLAYER_IDX[last_trick_leader]] = 1.0
+    vec.extend(leader_vec)
+
+    # 292: contract level
+    try:
+        vec.append(float(contract[0]))
+    except Exception:
+        vec.append(4.0)
+
+    # 293-297: strain one-hot (NT=0, S=1, H=2, D=3, C=4)
+    strain_map = {'N': 0, 'S': 1, 'H': 2, 'D': 3, 'C': 4}
+    strain_vec = [0.0] * 5
+    if len(contract) >= 2:
+        strain_vec[strain_map.get(contract[1].upper(), 0)] = 1.0
+    vec.extend(strain_vec)
+
+    return np.array(vec, dtype=np.float32).reshape(1, 1, 298)
+
+
+def _ben_pick(candidates, own_hand, dummy_hand, contract,
+              current_trick, last_trick, last_trick_leader,
+              next_player, declarer):
+    """
+    Run BEN ONNX inference and return the best candidate card string.
+    Returns None if BEN models are unavailable or inference fails.
+    """
+    if not _BEN_MODELS:
+        return None
+
+    try:
+        strain     = contract[1].upper() if len(contract) >= 2 else 'N'
+        model_type = 'nt' if strain == 'N' else 'suit'
+        side       = 'lefty' if next_player == _BEN_LEFT_OF[declarer] else 'righty'
+        sess       = _BEN_MODELS.get(f'{side}_{model_type}')
+        if sess is None:
+            return None
+
+        inp         = _ben_build_input(own_hand, dummy_hand, contract,
+                                       current_trick, last_trick, last_trick_leader)
+        input_name  = sess.get_inputs()[0].name
+        output_name = sess.get_outputs()[0].name
+        logits      = sess.run([output_name], {input_name: inp})[0].flatten()
+
+        best_card, best_val = None, -1e9
+        for card_str in candidates:
+            idx = _ben_card_idx(card_str)
+            if idx < 0:
+                continue   # card below 7 — not in BEN vocabulary
+            if logits[idx] > best_val:
+                best_val, best_card = logits[idx], card_str
+        return best_card   # None if every candidate is a low card (< 7)
+
+    except Exception as e:
+        app.logger.warning(f'BEN inference failed: {e}')
+        return None
+
+
+def _init_ben():
+    """Load BEN ONNX models. Called once at startup; silently skips if unavailable."""
+    try:
+        import onnxruntime as ort
+    except ImportError:
+        app.logger.info('BEN: onnxruntime not installed — heuristics only')
+        return
+
+    loaded = 0
+    for name in ('lefty_nt', 'righty_nt', 'lefty_suit', 'righty_suit'):
+        path = os.path.join(BEN_MODELS_DIR, f'{name}.onnx')
+        if os.path.isfile(path):
+            try:
+                _BEN_MODELS[name] = ort.InferenceSession(
+                    path, providers=['CPUExecutionProvider'])
+                loaded += 1
+            except Exception as e:
+                app.logger.warning(f'BEN: failed to load {name}.onnx: {e}')
+        else:
+            app.logger.info(f'BEN: {name}.onnx not found — skipping')
+
+    lvl = 'info' if loaded else 'info'
+    getattr(app.logger, lvl)(
+        f'BEN: {loaded}/4 models loaded from {BEN_MODELS_DIR}'
+        + ('' if loaded else ' — heuristics only'))
+
+
 def _defender_tiebreak(candidates, hand_cards, current_trick,
-                       partner_hand=None, dummy_hand=None):
+                       partner_hand=None, dummy_hand=None,
+                       contract=None, last_trick=None, last_trick_leader=None,
+                       next_player=None, declarer=None):
     """
     Bridge-heuristic tiebreaker for defenders when DDS rates multiple cards
     equally good (same trick count).
@@ -765,6 +922,14 @@ def _defender_tiebreak(candidates, hand_cards, current_trick,
     """
     if len(candidates) == 1:
         return candidates[0]
+
+    # ── Try BEN ONNX first (falls through to heuristics on failure) ───────────
+    if contract and next_player and declarer:
+        ben = _ben_pick(candidates, hand_cards, dummy_hand or [],
+                        contract, current_trick, last_trick or [],
+                        last_trick_leader, next_player, declarer)
+        if ben:
+            return ben
 
     position = len(current_trick)   # 0=lead, 1=2nd, 2=3rd, 3=4th
 
@@ -857,11 +1022,14 @@ def _defender_tiebreak(candidates, hand_cards, current_trick,
 
 @app.route('/api/dds/next_move', methods=['POST'])
 def dds_next_move():
-    d             = request.json
-    remaining     = d['remaining_hands']
-    current_trick = d.get('current_trick', [])
-    next_player   = d['next_player']
-    declarer      = d.get('declarer', 'S')
+    d                  = request.json
+    remaining          = d['remaining_hands']
+    current_trick      = d.get('current_trick', [])
+    next_player        = d['next_player']
+    declarer           = d.get('declarer', 'S')
+    contract           = d.get('contract', '')        # e.g. "4S" — for BEN
+    last_trick         = d.get('last_trick', [])      # [{player,card}×4]
+    last_trick_leader  = d.get('last_trick_leader')   # player who led last trick
 
     # Restore trick cards to the owners' hands so deal.play() can remove them.
     # Guard: only add a trick card if it isn't already in that player's remaining
@@ -926,7 +1094,12 @@ def dds_next_move():
     dummy_hand    = remaining.get(dummy, [])
     best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick,
                                        partner_hand=partner_hand,
-                                       dummy_hand=dummy_hand)
+                                       dummy_hand=dummy_hand,
+                                       contract=contract,
+                                       last_trick=last_trick,
+                                       last_trick_leader=last_trick_leader,
+                                       next_player=next_player,
+                                       declarer=declarer)
 
     trick_str = '|'.join(f'{e["player"]}:{e["card"]}' for e in current_trick)
     app.logger.warning(f'DDS next={next_player} trick=[{trick_str}] '
@@ -1360,6 +1533,7 @@ def get_unlocked_quips():
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 init_db()
+_init_ben()
 
 # Bootstrap first teacher account from environment variables.
 # Set BOOTSTRAP_USER and BOOTSTRAP_PASS in Railway dashboard.
