@@ -6,7 +6,8 @@ Flask app with SQLite, endplay DDS, and username/password accounts
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3, json, os, functools
+import sqlite3, json, os, functools, math, random
+from itertools import combinations
 from endplay.types import Deal, Player, Denom, Card, Rank
 from endplay.dds import solve_board
 
@@ -927,6 +928,105 @@ def teacher_students():
 
     conn.close()
     return jsonify(output)
+
+# ── Claim check ──────────────────────────────────────────────────────────────
+
+@app.route('/api/claim/check', methods=['POST'])
+def check_claim():
+    """
+    Single-dummy claim check.
+    Samples plausible distributions of the opponents' hidden cards and runs DDS
+    on each. Claim is allowed only when 100% of samples result in making.
+    """
+    d           = request.json
+    hands       = d['hands']        # {N:[...], E:[...], S:[...], W:[...]} remaining card strings
+    ns_made     = d['ns_made']
+    ew_made     = d['ew_made']
+    contract    = d['contract']     # e.g. '4S'
+    declarer    = d['declarer']     # 'N','E','S','W'
+    next_leader = d['next_leader']  # who leads the next trick
+
+    target = int(contract[0]) + 6
+    trump  = contract[1]            # 'S','H','D','C','N'
+
+    partner   = {'N':'S','S':'N','E':'W','W':'E'}
+    dummy     = partner[declarer]
+    decl_side = {declarer, dummy}
+
+    opp_players = [p for p in ('N','E','S','W') if p not in decl_side]
+    opp_p1, opp_p2 = opp_players
+
+    remaining_tricks = len(hands[declarer])   # same for all players between tricks
+    decl_made        = ns_made if declarer in ('N','S') else ew_made
+    decl_needed      = target - decl_made
+
+    if decl_needed <= 0:
+        return jsonify({'can_claim': True,  'pct': 100, 'samples': 0})
+    if remaining_tricks < decl_needed:
+        return jsonify({'can_claim': False, 'pct': 0,   'samples': 0})
+
+    # Combined opponent cards — we don't know the exact split (single-dummy)
+    combined_opp = hands[opp_p1] + hands[opp_p2]
+    n_each       = len(hands[opp_p1])
+    n_total      = len(combined_opp)
+
+    # Enumerate all splits if small enough, otherwise random sample
+    total_combos  = math.comb(n_total, n_each)
+    MAX_ENUMERATE = 200
+    N_SAMPLES     = 100
+
+    if total_combos <= MAX_ENUMERATE:
+        index_sets = [list(s) for s in combinations(range(n_total), n_each)]
+    else:
+        seen, index_sets = set(), []
+        for _ in range(N_SAMPLES * 20):
+            if len(index_sets) >= N_SAMPLES:
+                break
+            idx = tuple(sorted(random.sample(range(n_total), n_each)))
+            if idx not in seen:
+                seen.add(idx)
+                index_sets.append(list(idx))
+
+    rank_order = 'AKQJT98765432'
+    def hand_to_pbn(cards):
+        suits = {'S':[], 'H':[], 'D':[], 'C':[]}
+        for c in cards:
+            suits[c[0]].append(c[1])
+        return '.'.join(
+            ''.join(sorted(suits[s], key=lambda r: rank_order.index(r)))
+            for s in ('S','H','D','C')
+        )
+
+    is_decl_leader = next_leader in decl_side
+    making_count   = 0
+
+    for p1_idx in index_sets:
+        p1_set  = set(p1_idx)
+        p1_hand = [combined_opp[i] for i in p1_idx]
+        p2_hand = [combined_opp[i] for i in range(n_total) if i not in p1_set]
+
+        sample = dict(hands)
+        sample[opp_p1] = p1_hand
+        sample[opp_p2] = p2_hand
+
+        pbn  = 'N:{} {} {} {}'.format(
+            hand_to_pbn(sample['N']), hand_to_pbn(sample['E']),
+            hand_to_pbn(sample['S']), hand_to_pbn(sample['W'])
+        )
+        deal       = Deal(pbn)
+        deal.trump = SUIT_MAP[trump]
+        deal.first = PLAYER_MAP[next_leader]
+
+        results          = solve_board(deal)
+        tricks_this_side = max((t for _, t in results), default=0)
+
+        decl_remaining = tricks_this_side if is_decl_leader else (remaining_tricks - tricks_this_side)
+        if decl_made + decl_remaining >= target:
+            making_count += 1
+
+    n_samples = len(index_sets)
+    pct       = round(making_count / n_samples * 100) if n_samples else 0
+    return jsonify({'can_claim': pct == 100, 'pct': pct, 'samples': n_samples})
 
 # ── Quip unlocks (Mockédex) ───────────────────────────────────────────────────
 

@@ -663,6 +663,18 @@
     text-transform: uppercase;
   }
 
+  /* ── CLAIM BUTTON ── */
+  #claim-btn {
+    padding: 6px 14px; font-size: 0.78rem; font-weight: 700;
+    border: 1px solid rgba(201,168,76,0.5); border-radius: 6px;
+    background: rgba(201,168,76,0.12); color: var(--gold);
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+  }
+  #claim-btn:hover:not(:disabled) { background: rgba(201,168,76,0.25); }
+  #claim-btn:disabled { opacity: 0.5; cursor: default; }
+
   /* ── RESULT OVERLAY ── */
   .result-overlay {
     display: none;
@@ -1487,11 +1499,12 @@
       <h2 id="game-title">—</h2>
       <p id="game-subtitle">—</p>
     </div>
-    <div style="display:flex; align-items:center; gap:20px;">
+    <div style="display:flex; align-items:center; gap:12px;">
       <div class="score-display">
         <div class="tricks" id="tricks-display">0 / 0</div>
         <div class="tricks-label">Tricks Needed / Target</div>
       </div>
+      <button id="claim-btn" style="display:none;" onclick="checkClaim()">✋ Claim</button>
       <button class="btn btn-secondary" style="font-size:0.8rem;" onclick="showPage('lessons')">← Back</button>
     </div>
   </div>
@@ -2559,6 +2572,60 @@ async function resumeGame(lesson, saved) {
 //  GAME LOGIC
 // ═══════════════════════════════════════════════════════
 
+// ── Claim ────────────────────────────────────────────────────────────────────
+
+function updateClaimButton() {
+  const btn = document.getElementById('claim-btn');
+  if (!btn) return;
+  const show = !state.gameOver
+    && state.currentTrick.length === 0
+    && isDeclarerOrDummy(state.trickLeader)
+    && (state.nsTricks + state.ewTricks) < 13;
+  btn.style.display = show ? '' : 'none';
+  btn.disabled = false;
+  btn.textContent = '✋ Claim';
+}
+
+async function checkClaim() {
+  const btn = document.getElementById('claim-btn');
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(API + '/claim/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hands:       state.hands,
+        ns_made:     state.nsTricks,
+        ew_made:     state.ewTricks,
+        contract:    state.contract,
+        declarer:    state.declarer,
+        next_leader: state.trickLeader
+      })
+    });
+    const data = await res.json();
+
+    if (data.can_claim) {
+      // Award all remaining tricks to declarer's side
+      const remaining      = 13 - state.nsTricks - state.ewTricks;
+      const declarerIsNS   = state.declarer === 'N' || state.declarer === 'S';
+      if (declarerIsNS) state.nsTricks += remaining;
+      else              state.ewTricks += remaining;
+      btn.style.display = 'none';
+      await finishGame();
+    } else {
+      toast(`Cannot claim — contract is only ${data.pct}% secure. Keep playing.`);
+      btn.disabled = false;
+      btn.textContent = '✋ Claim';
+    }
+  } catch(e) {
+    toast('Claim check failed — try again.');
+    btn.disabled = false;
+    btn.textContent = '✋ Claim';
+  }
+}
+
 function removeCard(player, cardStr) {
   state.hands[player] = state.hands[player].filter(c => c !== cardStr);
 }
@@ -2595,7 +2662,8 @@ function getPlayOrder(leader) {
 async function handleNextPlay(player) {
   renderTable();
   updateTricksDisplay();
-  
+  updateClaimButton();
+
   if (isDeclarerOrDummy(player)) {
     // Human plays (declarer or dummy)
     // Declarer controls both their hand and dummy
@@ -2730,7 +2798,9 @@ async function humanPlaysCard(player, card) {
 }
 
 async function playCard(player, card, isHuman) {
-  // Animate
+  // Hide claim button once a card is played in the trick
+  document.getElementById('claim-btn').style.display = 'none';
+
   removeCard(player, card);
   state.currentTrick.push({ player, card });
   state.allPlayedCards.push({ player, card });
