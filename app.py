@@ -639,29 +639,78 @@ def remaining_to_pbn(remaining):
         hand_str(remaining.get('W', []))
     )
 
-def _defender_tiebreak(candidates, hand_cards, current_trick):
+def _defender_tiebreak(candidates, hand_cards, current_trick, partner_hand=None):
     """
     Bridge-heuristic tiebreaker for defenders when DDS rates multiple cards
     equally good (same trick count).
 
-    On lead (empty trick):
-      - Ace from AK combination → best (cash the setting trick entry)
-      - Top of a touching sequence (QJ→Q, JT→J, T9→T) → prefer sequence top
-      - Small spot card (9 or lower) → lead lowest (standard low lead)
+    Position in trick drives the choice:
+
+    1st to play (leading):
+      - Ace from AK → cash the combination
+      - Top of a touching sequence (QJ→Q, JT→J) → sequence lead
+      - Spot card (9 or lower) → lead the smallest
       - Isolated unsupported honour → last resort
 
-    Following / discarding:
-      - Play the cheapest tied card (don't burn honours unnecessarily).
+    2nd to play: cheapest card (second hand low).
+
+    3rd to play: highest card (third hand high).
+      Exception: from a touching sequence at the top of the candidates,
+      play the lower of that pair — e.g. Q from KQ (standard 3rd-hand
+      lower-of-equals, preserves the higher card as a future guard).
+
+    4th to play: cheapest card; DDS already ensures this card can win
+      when winning is necessary.
+
+    Entry management (when discarding from a different suit):
+      If partner_hand is provided, avoid discarding the last card in a
+      suit where partner holds promoted winners — it would strand those
+      tricks by cutting our only re-entry.
     """
     if len(candidates) == 1:
         return candidates[0]
 
-    # Following suit or discarding — cheapest card wins
-    if current_trick:
+    position = len(current_trick)   # 0=lead, 1=2nd, 2=3rd, 3=4th
+
+    # ── 2nd / 4th hand: cheapest tied card ───────────────────────────────────
+    if position in (1, 3):
         return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
 
-    # ── On lead ──────────────────────────────────────────────────────────────
-    # Build a per-suit index list from the full remaining hand
+    # ── 3rd hand: high — but lower of touching sequence at the top ───────────
+    if position == 2:
+        sorted_cands = sorted(candidates, key=lambda c: RANK_ORD.index(c[1]))
+        # sorted_cands[0] = best card (lowest RANK_ORD index = highest rank)
+        best_ridx = RANK_ORD.index(sorted_cands[0][1])
+        if len(sorted_cands) >= 2:
+            second_ridx = RANK_ORD.index(sorted_cands[1][1])
+            if second_ridx == best_ridx + 1:    # touching pair at the top
+                return sorted_cands[1]          # lower of touching → Q from KQ
+        return sorted_cands[0]                  # plain third-hand-high
+
+    # ── On lead: entry-management guard ──────────────────────────────────────
+    # If partner has promoted winners in a suit and we hold only one card
+    # in that suit, don't throw it away on lead — it is our sole entry.
+    # This only prunes the candidate list; we don't crash if all are entries.
+    if partner_hand:
+        partner_by_suit: dict = {}
+        for c in partner_hand:
+            partner_by_suit.setdefault(c[0], []).append(RANK_ORD.index(c[1]))
+
+        def is_sole_entry(card):
+            suit = card[0]
+            # Count how many cards we have left in this suit (including this card)
+            my_suit_cards = [c for c in hand_cards if c[0] == suit]
+            if len(my_suit_cards) != 1:
+                return False    # not sole card in suit, no entry risk
+            # Partner has a winner in this suit (top card is rank ≤ 4 = A/K/Q/J/T)
+            p_idxs = partner_by_suit.get(suit, [])
+            return bool(p_idxs) and p_idxs[0] <= 4
+
+        protected = [c for c in candidates if not is_sole_entry(c)]
+        if protected:           # only prune if it leaves at least one option
+            candidates = protected
+
+    # ── On lead: suit-preference scoring ─────────────────────────────────────
     hand_by_suit: dict = {}
     for c in hand_cards:
         hand_by_suit.setdefault(c[0], []).append(RANK_ORD.index(c[1]))
@@ -753,11 +802,15 @@ def dds_next_move():
     target_tricks = max(t for _, t in results_str)
 
     # Among DDS-equivalent cards apply bridge defensive heuristics:
-    # - On lead: prefer top of sequence, A from AK, low from small cards
-    # - Following: cheapest card (don't burn honours)
+    # - Lead:       top of sequence / A from AK / lead low; guard partner's entries
+    # - 2nd / 4th:  cheapest (second hand low; economy play)
+    # - 3rd:        highest, or lower of touching honours at the top
     candidates    = [s for s, t in results_str if t == target_tricks]
     defender_hand = remaining.get(next_player, [])
-    best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick)
+    partner       = {'N':'S','S':'N','E':'W','W':'E'}[next_player]
+    partner_hand  = remaining.get(partner, [])
+    best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick,
+                                       partner_hand=partner_hand)
 
     trick_str = '|'.join(f'{e["player"]}:{e["card"]}' for e in current_trick)
     app.logger.warning(f'DDS next={next_player} trick=[{trick_str}] '
