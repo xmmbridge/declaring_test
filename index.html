@@ -3125,9 +3125,11 @@ async function finishGame() {
       diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
   }
   
-  const quipType = diff >= 0 ? 'made' : 'down';
-  const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
-  const holoSet  = diff >= 0 ? QUIPS_MADE_HOLO : QUIPS_DOWN_HOLO;
+  // Player success: declarer made it, OR defender went down
+  const playerSucceeded = state.mode === 'defence' ? diff < 0 : diff >= 0;
+  const quipType = playerSucceeded ? 'made' : 'down';
+  const quipList = playerSucceeded ? QUIPS_MADE : QUIPS_DOWN;
+  const holoSet  = playerSucceeded ? QUIPS_MADE_HOLO : QUIPS_DOWN_HOLO;
   const pool = quipList.map((q, i) => ({q, i})).filter(({q}) => q.length > 0);
   const pick = pool[Math.floor(Math.random() * pool.length)];
   const quipIdx = pick.i;
