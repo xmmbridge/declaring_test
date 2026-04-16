@@ -1148,6 +1148,20 @@
   .d { color: #e07820; }
   .c { color: #aaaaaa; }
 
+  /* ── Lesson mode toggle ─────────────────────────────── */
+  .mode-toggle-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mode-opt {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 7px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04); font-size: 0.85rem; color: var(--fg);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mode-opt:has(input:checked) {
+    background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.45);
+    color: var(--gold-light); font-weight: 600;
+  }
+  .mode-opt input[type="radio"] { accent-color: var(--gold); width: 14px; height: 14px; }
+
   /* ── Auction / Bidding Calculator ───────────────────── */
   .auction-toggle-row {
     display: flex; align-items: center; gap: 10px;
@@ -1351,7 +1365,7 @@
       </div>
       <div class="form-row">
         <label>Declarer</label>
-        <select id="declarer">
+        <select id="declarer" onchange="updateDefenceSeatOptions()">
           <option value="N">North</option>
           <option value="E">East</option>
           <option value="S" selected>South</option>
@@ -1361,6 +1375,25 @@
     </div>
 
     <div class="form-row">
+      <label>Lesson Type</label>
+      <div class="mode-toggle-row">
+        <label class="mode-opt">
+          <input type="radio" name="lesson-mode" id="mode-declarer" value="declarer" checked onchange="onModeChange()">
+          <span>Declarer Play</span>
+        </label>
+        <label class="mode-opt">
+          <input type="radio" name="lesson-mode" id="mode-defence" value="defence" onchange="onModeChange()">
+          <span>Defensive Play</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-row" id="defence-seat-row" style="display:none;">
+      <label>Student Defends As</label>
+      <select id="student-seat" onchange="updateLeadFieldVisibility()"></select>
+    </div>
+
+    <div class="form-row" id="lead-row">
       <label>Opening Lead
         <span style="font-weight:300; font-size:0.75rem; text-transform:none; margin-left:8px;">
           (e.g. SA = Ace of Spades, H7 = 7 of Hearts)
@@ -1879,6 +1912,8 @@ let state = {
   contract: '',       // e.g. '4S'
   contractLevel: 0,
   target: 0,          // tricks needed to make contract
+  mode: 'declarer',   // 'declarer' or 'defence'
+  studentSeat: '',    // which seat the student defends (defence mode only)
   currentTrick: [],   // [{player, card}, ...]
   lastTrick: [],      // completed trick (4 cards) — fed to BEN
   lastTrickLeader: null, // who led the last completed trick
@@ -1911,6 +1946,8 @@ function saveGameProgress() {
       contract:       state.contract,
       contractLevel:  state.contractLevel,
       target:         state.target,
+      mode:           state.mode,
+      studentSeat:    state.studentSeat,
       currentTrick:   state.currentTrick,
       trickLeader:    state.trickLeader,
       nsTricks:       state.nsTricks,
@@ -2262,6 +2299,56 @@ function setAuctionData(str) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  LESSON FORM HELPERS (mode toggle, seat selector)
+// ═══════════════════════════════════════════════════════
+
+function getLessonMode() {
+  return document.querySelector('input[name="lesson-mode"]:checked')?.value || 'declarer';
+}
+
+function onModeChange() {
+  const mode = getLessonMode();
+  document.getElementById('defence-seat-row').style.display = mode === 'defence' ? '' : 'none';
+  if (mode === 'defence') updateDefenceSeatOptions();
+  updateLeadFieldVisibility();
+}
+
+function updateDefenceSeatOptions() {
+  const mode = getLessonMode();
+  if (mode !== 'defence') return;
+  const declarer = document.getElementById('declarer').value;
+  const leftOf  = { N:'E', E:'S', S:'W', W:'N' };
+  const partner  = { N:'S', S:'N', E:'W', W:'E' };
+  const opener   = leftOf[declarer];
+  const second   = partner[opener];
+  const names    = { N:'North', E:'East', S:'South', W:'West' };
+  const sel = document.getElementById('student-seat');
+  const prev = sel.value;
+  sel.innerHTML = `
+    <option value="${opener}">${names[opener]} — Opening Leader</option>
+    <option value="${second}">${names[second]} — 2nd Defender</option>
+  `;
+  if (prev === second) sel.value = second;
+  updateLeadFieldVisibility();
+}
+
+function updateLeadFieldVisibility() {
+  const leadRow = document.getElementById('lead-row');
+  if (!leadRow) return;
+  const mode = getLessonMode();
+  if (mode === 'defence') {
+    const declarer = document.getElementById('declarer').value;
+    const leftOf   = { N:'E', E:'S', S:'W', W:'N' };
+    const opener   = leftOf[declarer];
+    const seat     = document.getElementById('student-seat')?.value;
+    // Lead not needed when student IS the opener (they'll choose their own)
+    leadRow.style.display = (seat === opener) ? 'none' : '';
+  } else {
+    leadRow.style.display = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  CREATE LESSON
 // ═══════════════════════════════════════════════════════
 
@@ -2270,29 +2357,38 @@ async function createLesson() {
   const E = getHand('E');
   const S = getHand('S');
   const W = getHand('W');
-  const title = document.getElementById('title').value.trim();
-  const contract = document.getElementById('contract').value;
-  const declarer = document.getElementById('declarer').value;
-  const lead = document.getElementById('lead').value.trim().toUpperCase();
-  const technique = document.getElementById('technique').value.trim();
+  const title       = document.getElementById('title').value.trim();
+  const contract    = document.getElementById('contract').value;
+  const declarer    = document.getElementById('declarer').value;
+  const lead        = document.getElementById('lead').value.trim().toUpperCase();
+  const technique   = document.getElementById('technique').value.trim();
   const explanation = document.getElementById('explanation').value.trim();
+  const mode        = getLessonMode();
+  const studentSeat = mode === 'defence' ? document.getElementById('student-seat').value : '';
+
+  const leftOf = { N:'E', E:'S', S:'W', W:'N' };
+  const studentIsOpener = mode === 'defence' && studentSeat === leftOf[declarer];
+  const leadRequired    = mode === 'declarer' || (mode === 'defence' && !studentIsOpener);
 
   const hasCards = h => h.replace(/[.\-]/g, '').length > 0;
   if (!hasCards(N) || !hasCards(E) || !hasCards(S) || !hasCards(W)) return toast('Please enter all 4 hands');
   if (!title) return toast('Please enter a title');
-  if (!lead || lead.length < 2) return toast('Please enter the opening lead (e.g. SA)');
+  if (leadRequired && (!lead || lead.length < 2)) return toast('Please enter the opening lead (e.g. SA)');
 
-  const pbn = `N:${N} ${E} ${S} ${W}`;
+  const pbn   = `N:${N} ${E} ${S} ${W}`;
   const topic = document.getElementById('topic').value.trim();
   const isEdit = !!editingLessonId;
-  const url = isEdit ? API + '/lessons/' + editingLessonId : API + '/lessons';
+  const url    = isEdit ? API + '/lessons/' + editingLessonId : API + '/lessons';
   const method = isEdit ? 'PUT' : 'POST';
 
   try {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, topic, technique, explanation, pbn, contract, declarer, lead, auction: getAuctionData() })
+      body: JSON.stringify({
+        title, topic, technique, explanation, pbn, contract, declarer, lead,
+        mode, student_seat: studentSeat, auction: getAuctionData()
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Server error');
@@ -2300,6 +2396,9 @@ async function createLesson() {
     editingLessonId = null;
     ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
       .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mode-declarer').checked = true;
+    document.getElementById('defence-seat-row').style.display = 'none';
+    document.getElementById('lead-row').style.display = '';
     showPage('lessons');
   } catch(e) {
     toast('Error saving lesson: ' + e.message);
@@ -2322,8 +2421,21 @@ async function editLesson(id) {
   document.getElementById('explanation').value = lesson.explanation || '';
   document.getElementById('contract').value = lesson.contract;
   document.getElementById('declarer').value = lesson.declarer;
-  document.getElementById('lead').value = lesson.lead;
+  document.getElementById('lead').value = lesson.lead || '';
   setAuctionData(lesson.auction || '');
+
+  // Restore lesson type / defence mode
+  const mode = lesson.mode || 'declarer';
+  document.getElementById('mode-' + mode).checked = true;
+  if (mode === 'defence') {
+    document.getElementById('defence-seat-row').style.display = '';
+    updateDefenceSeatOptions();
+    const seat = lesson.student_seat || '';
+    if (seat) document.getElementById('student-seat').value = seat;
+  } else {
+    document.getElementById('defence-seat-row').style.display = 'none';
+  }
+  updateLeadFieldVisibility();
 
   document.getElementById('create-page-title').textContent = 'Edit Lesson';
   document.getElementById('save-lesson-btn').textContent = '💾 Update Lesson';
@@ -2336,6 +2448,9 @@ function newLesson() {
   document.getElementById('save-lesson-btn').textContent = '💾 Save Lesson';
   ['title','topic','technique','explanation','lead', ...HAND_INPUT_IDS]
     .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('mode-declarer').checked = true;
+  document.getElementById('defence-seat-row').style.display = 'none';
+  document.getElementById('lead-row').style.display = '';
   setAuctionData('');
   showPage('create');
 }
@@ -2497,23 +2612,29 @@ function initGame(lesson) {
   state.lastTrickLeader = null;
   state.gameOver = false;
   state.playSequence = [];
+  state.mode        = lesson.mode || 'declarer';
+  state.studentSeat = lesson.student_seat || '';
 
   // Who leads? Person to the LEFT of declarer (clockwise)
   const leftOf = { N:'E', E:'S', S:'W', W:'N' };
   state.trickLeader = leftOf[lesson.declarer];
 
-  // Set the opening lead (already known from lesson)
-  const leadCard = lesson.lead.toUpperCase();
-  state.currentTrick = [{ player: state.trickLeader, card: leadCard }];
-  // Remove lead card from hand
-  removeCard(state.trickLeader, leadCard);
-  state.allPlayedCards.push({ player: state.trickLeader, card: leadCard });
-  state.playSequence.push(leadCard);
+  const studentIsOpener = state.mode === 'defence' && state.studentSeat === state.trickLeader;
+
+  if (!studentIsOpener) {
+    // Pre-play the opening lead (declarer mode, or defence where robot opens)
+    const leadCard = lesson.lead.toUpperCase();
+    state.currentTrick = [{ player: state.trickLeader, card: leadCard }];
+    removeCard(state.trickLeader, leadCard);
+    state.allPlayedCards.push({ player: state.trickLeader, card: leadCard });
+    state.playSequence.push(leadCard);
+  }
 
   // Update UI
   document.getElementById('game-title').textContent = formatContract(lesson.contract);
-  document.getElementById('game-subtitle').textContent =
-    'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
+  document.getElementById('game-subtitle').textContent = state.mode === 'defence'
+    ? 'Defence · ' + PLAYER_NAMES[state.studentSeat] + ' · ' + lesson.title
+    : 'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
@@ -2528,16 +2649,23 @@ function initGame(lesson) {
     const label = document.getElementById(p + '-label');
     label.textContent = PLAYER_NAMES[p];
     label.className = 'hand-label';
-    if (p === state.declarer) label.className += ' declarer-label';
+    if (state.mode === 'defence') {
+      if (p === state.studentSeat) label.className += ' declarer-label'; // "you" highlight
+    } else {
+      if (p === state.declarer) label.className += ' declarer-label';
+    }
     if (p === state.dummy) label.className += ' dummy-label';
   });
 
   renderTable();
   updateTricksDisplay();
 
-  // After rendering, we need to continue: who plays next after the lead?
-  // After West leads, next is North (dummy plays if dummy, or North if North is next)
-  setTimeout(() => continueAfterLead(), 300);
+  if (studentIsOpener) {
+    // Student leads: let them choose freely
+    setTimeout(() => handleNextPlay(state.trickLeader), 300);
+  } else {
+    setTimeout(() => continueAfterLead(), 300);
+  }
 }
 
 async function resumeGame(lesson, saved) {
@@ -2552,7 +2680,11 @@ async function resumeGame(lesson, saved) {
     contract:       saved.contract,
     contractLevel:  saved.contractLevel,
     target:         saved.target,
+    mode:           saved.mode        || 'declarer',
+    studentSeat:    saved.studentSeat || '',
     currentTrick:   saved.currentTrick,
+    lastTrick:      saved.lastTrick   || [],
+    lastTrickLeader:saved.lastTrickLeader || null,
     trickLeader:    saved.trickLeader,
     nsTricks:       saved.nsTricks,
     ewTricks:       saved.ewTricks,
@@ -2564,10 +2696,10 @@ async function resumeGame(lesson, saved) {
 
   showPage('game');
 
-  const leadCard = state.allPlayedCards[0]?.card || '';
   document.getElementById('game-title').textContent = formatContract(lesson.contract);
-  document.getElementById('game-subtitle').textContent =
-    'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
+  document.getElementById('game-subtitle').textContent = state.mode === 'defence'
+    ? 'Defence · ' + PLAYER_NAMES[state.studentSeat] + ' · ' + lesson.title
+    : 'by ' + PLAYER_NAMES[lesson.declarer] + ' · ' + lesson.title;
 
   if (lesson.explanation) {
     document.getElementById('explanation-panel').style.display = 'block';
@@ -2581,8 +2713,12 @@ async function resumeGame(lesson, saved) {
     const label = document.getElementById(p + '-label');
     label.textContent = PLAYER_NAMES[p];
     label.className = 'hand-label';
-    if (p === state.declarer) label.className += ' declarer-label';
-    if (p === state.dummy)    label.className += ' dummy-label';
+    if (state.mode === 'defence') {
+      if (p === state.studentSeat) label.className += ' declarer-label';
+    } else {
+      if (p === state.declarer) label.className += ' declarer-label';
+    }
+    if (p === state.dummy) label.className += ' dummy-label';
   });
 
   renderTable();
@@ -2605,6 +2741,7 @@ function updateClaimButton() {
   const btn = document.getElementById('claim-btn');
   if (!btn) return;
   const show = !state.gameOver
+    && state.mode !== 'defence'
     && state.currentTrick.length === 0
     && isDeclarerOrDummy(state.trickLeader)
     && (state.nsTricks + state.ewTricks) < 13;
@@ -2691,14 +2828,16 @@ async function handleNextPlay(player) {
   updateTricksDisplay();
   updateClaimButton();
 
-  if (isDeclarerOrDummy(player)) {
-    // Human plays (declarer or dummy)
-    // Declarer controls both their hand and dummy
+  // Human turn: declarer/dummy in declarer mode; student seat in defence mode
+  const isHumanTurn = state.mode === 'defence'
+    ? player === state.studentSeat
+    : isDeclarerOrDummy(player);
+
+  if (isHumanTurn) {
     enablePlayerCards(player);
     document.getElementById('turn-indicator').textContent =
       'Your turn — ' + PLAYER_NAMES[player];
   } else {
-    // Robot defends using DDS
     document.getElementById('turn-indicator').textContent =
       PLAYER_NAMES[player] + ' thinking...';
     disableAllCards();
@@ -2925,17 +3064,31 @@ async function finishGame() {
   disableAllCards();
   
   // Calculate result
-  const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+  const declarerIsNS  = state.declarer === 'N' || state.declarer === 'S';
   const declarerTricks = declarerIsNS ? state.nsTricks : state.ewTricks;
   const diff = declarerTricks - state.target;
-  
+
   let result, heading;
-  if (diff >= 0) {
-    result = diff > 0 ? `Made +${diff}` : 'Made exactly';
-    heading = diff > 0 ? '🎉 Contract Made!' : '✅ Contract Made!';
+  if (state.mode === 'defence') {
+    // Show result from defenders' perspective
+    if (diff < 0) {
+      result  = `Down ${Math.abs(diff)}`;
+      heading = `${Math.abs(diff)} DOWN — Defence wins!`;
+    } else if (diff === 0) {
+      result  = 'Made exactly';
+      heading = 'Contract made — close defence';
+    } else {
+      result  = `Made +${diff}`;
+      heading = `+${diff} overtricks — tighten up!`;
+    }
   } else {
-    result = `Down ${Math.abs(diff)}`;
-    heading = `❌ Down ${Math.abs(diff)}`;
+    if (diff >= 0) {
+      result  = diff > 0 ? `Made +${diff}` : 'Made exactly';
+      heading = diff > 0 ? '🎉 Contract Made!' : '✅ Contract Made!';
+    } else {
+      result  = `Down ${Math.abs(diff)}`;
+      heading = `❌ Down ${Math.abs(diff)}`;
+    }
   }
 
   const score = calculateScore(state.contract, declarerTricks);
@@ -2960,9 +3113,17 @@ async function finishGame() {
 
   // Show result
   const box = document.getElementById('result-box');
-  box.className = 'result-box ' + (diff >= 0 ? 'made' : 'down');
-  document.getElementById('result-heading').textContent =
-    diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
+  // Defence: good = went down (diff < 0); bad = declarer made it
+  const defenceGood = state.mode === 'defence' && diff < 0;
+  const defenceBad  = state.mode === 'defence' && diff >= 0;
+  box.className = 'result-box ' + (defenceGood || (state.mode !== 'defence' && diff >= 0) ? 'made' : 'down');
+  if (state.mode === 'defence') {
+    document.getElementById('result-heading').textContent =
+      diff < 0 ? `DOWN ${Math.abs(diff)}` : (diff === 0 ? 'MADE' : `MADE +${diff}`);
+  } else {
+    document.getElementById('result-heading').textContent =
+      diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
+  }
   
   const quipType = diff >= 0 ? 'made' : 'down';
   const quipList = diff >= 0 ? QUIPS_MADE : QUIPS_DOWN;
@@ -3044,12 +3205,15 @@ function renderHand(player) {
 
   const isSideHand = (player === 'E' || player === 'W');
 
+  // In defence mode show all 4 hands face-up (training tool)
+  const faceDown = isDefenderHand && state.mode !== 'defence';
+
   container.innerHTML = sorted.map(card => {
     const suit = card[0];
     const rank = card[1];
     const suitName = SUIT_NAMES[suit];
     const suitSym = SUIT_SYMBOLS[suit];
-    if (isDefenderHand) {
+    if (faceDown) {
       return `<div class="card face-down${isSideHand ? ' side' : ''}" data-card="${card}"></div>`;
     }
     return `<div class="card ${suitName}" data-card="${card}">

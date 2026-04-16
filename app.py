@@ -41,8 +41,8 @@ _BEN_MODELS:    dict = {}   # populated by _init_ben() at startup
 _BEN_RANK_IDX = {'A': 0, 'K': 1, 'Q': 2, 'J': 3, 'T': 4, '9': 5, '8': 6, '7': 7}
 _BEN_SUIT_IDX = {'S': 0, 'H': 1, 'D': 2, 'C': 3}
 _BEN_PLAYER_IDX = {'N': 0, 'E': 1, 'S': 2, 'W': 3}
-# Opening leader is the player to the LEFT of declarer (clockwise)
-_BEN_LEFT_OF  = {'N': 'W', 'E': 'N', 'S': 'E', 'W': 'S'}
+# Opening leader is the player to the LEFT of declarer (clockwise: N→E→S→W→N)
+_BEN_LEFT_OF  = {'N': 'E', 'E': 'S', 'S': 'W', 'W': 'N'}
 
 def card_to_str(card):
     return SUIT_BACK[card.suit] + RANK_BACK[card.rank]
@@ -154,6 +154,8 @@ def init_db():
         'ALTER TABLE topics   ADD COLUMN homework         INTEGER NOT NULL DEFAULT 0',
         'ALTER TABLE lessons  ADD COLUMN auction          TEXT DEFAULT ""',
         'ALTER TABLE users    ADD COLUMN telegram_chat_id TEXT DEFAULT NULL',
+        'ALTER TABLE lessons  ADD COLUMN mode         TEXT DEFAULT "declarer"',
+        'ALTER TABLE lessons  ADD COLUMN student_seat TEXT DEFAULT ""',
     ]:
         try:
             conn.execute(stmt)
@@ -599,10 +601,12 @@ def create_lesson():
         print('DDS par error:', e)
     conn = get_db()
     cur  = conn.execute(
-        'INSERT INTO lessons (title,topic,technique,explanation,pbn,contract,declarer,lead,par_tricks,auction) '
-        'VALUES (?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO lessons '
+        '(title,topic,technique,explanation,pbn,contract,declarer,lead,par_tricks,auction,mode,student_seat) '
+        'VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
         (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
-         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, d.get('auction','')))
+         d['pbn'], d['contract'], d['declarer'], d.get('lead',''), par_tricks,
+         d.get('auction',''), d.get('mode','declarer'), d.get('student_seat','')))
     lid = cur.lastrowid
     conn.commit()
     # Notify students if this lesson belongs to an already-active homework topic
@@ -638,9 +642,11 @@ def update_lesson(lid):
         print('DDS par error:', e)
     conn = get_db()
     conn.execute(
-        'UPDATE lessons SET title=?,topic=?,technique=?,explanation=?,pbn=?,contract=?,declarer=?,lead=?,par_tricks=?,auction=? WHERE id=?',
+        'UPDATE lessons SET title=?,topic=?,technique=?,explanation=?,pbn=?,'
+        'contract=?,declarer=?,lead=?,par_tricks=?,auction=?,mode=?,student_seat=? WHERE id=?',
         (d['title'], d.get('topic',''), d.get('technique',''), d.get('explanation',''),
-         d['pbn'], d['contract'], d['declarer'], d['lead'], par_tricks, d.get('auction',''), lid))
+         d['pbn'], d['contract'], d['declarer'], d.get('lead',''), par_tricks,
+         d.get('auction',''), d.get('mode','declarer'), d.get('student_seat',''), lid))
     conn.commit(); conn.close()
     return jsonify({'id': lid, 'par_tricks': par_tricks})
 
@@ -1078,28 +1084,31 @@ def dds_next_move():
 
     # solve_board returns tricks for the side of the player who is next to act
     # (EW tricks when an EW player leads/plays, NS tricks when NS).
-    # Since this endpoint is only ever called for defenders (EW), we always
-    # want to MAXIMISE — pick the card that gives EW the most tricks.
+    # Always MAXIMISE — works for both declarer (NS) and defenders (EW).
     target_tricks = max(t for _, t in results_str)
 
-    # Among DDS-equivalent cards apply bridge defensive heuristics:
-    # - Lead:       top of sequence / A from AK / lead low; guard partner's entries
-    # - 2nd / 4th:  cheapest (second hand low; economy play)
-    # - 3rd:        highest, or lower of touching honours at the top
+    # Among DDS-equivalent cards pick the best tiebreaker:
+    # - Declarer / dummy:  just play the highest card (robot plays double-dummy optimally)
+    # - Defenders:         BEN ONNX → bridge positional heuristics
     candidates    = [s for s, t in results_str if t == target_tricks]
-    defender_hand = remaining.get(next_player, [])
     _partner      = {'N':'S','S':'N','E':'W','W':'E'}
-    partner_hand  = remaining.get(_partner[next_player], [])
     dummy         = _partner[declarer]
-    dummy_hand    = remaining.get(dummy, [])
-    best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick,
-                                       partner_hand=partner_hand,
-                                       dummy_hand=dummy_hand,
-                                       contract=contract,
-                                       last_trick=last_trick,
-                                       last_trick_leader=last_trick_leader,
-                                       next_player=next_player,
-                                       declarer=declarer)
+
+    if next_player in (declarer, dummy):
+        # Robot declarer side — any DDS-optimal card is fine; prefer highest rank
+        best_card_str = min(candidates, key=lambda c: RANK_ORD.index(c[1]))
+    else:
+        defender_hand = remaining.get(next_player, [])
+        partner_hand  = remaining.get(_partner[next_player], [])
+        dummy_hand    = remaining.get(dummy, [])
+        best_card_str = _defender_tiebreak(candidates, defender_hand, current_trick,
+                                           partner_hand=partner_hand,
+                                           dummy_hand=dummy_hand,
+                                           contract=contract,
+                                           last_trick=last_trick,
+                                           last_trick_leader=last_trick_leader,
+                                           next_player=next_player,
+                                           declarer=declarer)
 
     trick_str = '|'.join(f'{e["player"]}:{e["card"]}' for e in current_trick)
     app.logger.warning(f'DDS next={next_player} trick=[{trick_str}] '
