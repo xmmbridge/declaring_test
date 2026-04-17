@@ -1095,8 +1095,18 @@ def dds_next_move():
     dummy         = _partner[declarer]
 
     if next_player in (declarer, dummy):
-        # Robot declarer side — any DDS-optimal card is fine; prefer highest rank
-        best_card_str = min(candidates, key=lambda c: RANK_ORD.index(c[1]))
+        # Detect discard: void in the led suit → don't throw away winners
+        led_suit     = current_trick[0]['card'][0] if current_trick else None
+        next_hand    = remaining.get(next_player, [])
+        can_follow   = led_suit and any(c[0] == led_suit for c in next_hand)
+        is_discarding = bool(led_suit) and not can_follow
+
+        if is_discarding:
+            # Throw the lowest-ranked card to preserve winners
+            best_card_str = max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+        else:
+            # Following suit or leading: play highest card
+            best_card_str = min(candidates, key=lambda c: RANK_ORD.index(c[1]))
     else:
         defender_hand = remaining.get(next_player, [])
         partner_hand  = remaining.get(_partner[next_player], [])
