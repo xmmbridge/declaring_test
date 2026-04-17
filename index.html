@@ -2131,7 +2131,9 @@ async function loadLessons(forScores=false) {
         <h3>${escHtml(l.title)}</h3>
         <div class="contract-badge">${formatContract(l.contract)} by ${PLAYER_NAMES[l.declarer]}</div>
         <div class="technique">${escHtml(l.technique || 'General Practice')}</div>
-        <div class="par-info">Target: ${l.contract[0] * 1 + 6} tricks</div>
+        <div class="par-info">${l.mode === 'defence'
+          ? `Defeat in: ${14 - (l.contract[0] * 1 + 6)} tricks`
+          : `Target: ${l.contract[0] * 1 + 6} tricks`}</div>
         ${showBadge && appUser ? hwBadge(l.id) : ''}
       </div>`;
 
@@ -3921,11 +3923,11 @@ async function loadProfile() {
         </div>
         <div class="profile-stat">
           <div class="profile-stat-value" style="color:#f08080;">${cntDown}</div>
-          <div class="profile-stat-label">▼ Down</div>
+          <div class="profile-stat-label">✗ Fail</div>
         </div>
         <div class="profile-stat">
           <div class="profile-stat-value" style="color:#80e080;">${cntMade}</div>
-          <div class="profile-stat-label">✓ Made</div>
+          <div class="profile-stat-label">✓ Pass</div>
         </div>
         <div class="profile-stat">
           <div class="profile-stat-value" style="color:var(--gold);">${cntFirst}</div>
