@@ -1095,17 +1095,34 @@ def dds_next_move():
     dummy         = _partner[declarer]
 
     if next_player in (declarer, dummy):
-        # Detect discard: void in the led suit → don't throw away winners
-        led_suit     = current_trick[0]['card'][0] if current_trick else None
-        next_hand    = remaining.get(next_player, [])
-        can_follow   = led_suit and any(c[0] == led_suit for c in next_hand)
+        led_suit  = current_trick[0]['card'][0] if current_trick else None
+        next_hand = remaining.get(next_player, [])
+        can_follow = led_suit and any(c[0] == led_suit for c in next_hand)
         is_discarding = bool(led_suit) and not can_follow
 
-        if is_discarding:
-            # Throw the lowest-ranked card to preserve winners
+        # Determine if the trick is currently being won by a defender
+        trick_won_by_defender = False
+        if current_trick and can_follow:
+            trump = contract[1] if contract and len(contract) > 1 and contract[1] != 'N' else None
+            cur_winner = current_trick[0]['player']
+            cur_best   = current_trick[0]['card']
+            for entry in current_trick[1:]:
+                ec, eb = entry['card'], cur_best
+                ec_trump = trump and ec[0] == trump
+                eb_trump = trump and eb[0] == trump
+                if ec_trump and not eb_trump:
+                    cur_winner, cur_best = entry['player'], ec
+                elif ec_trump and eb_trump and RANK_ORD.index(ec[1]) < RANK_ORD.index(eb[1]):
+                    cur_winner, cur_best = entry['player'], ec
+                elif not ec_trump and not eb_trump and ec[0] == led_suit and RANK_ORD.index(ec[1]) < RANK_ORD.index(eb[1]):
+                    cur_winner, cur_best = entry['player'], ec
+            trick_won_by_defender = cur_winner not in (declarer, dummy)
+
+        if is_discarding or trick_won_by_defender:
+            # Discard or following to a defender's winner — preserve high cards
             best_card_str = max(candidates, key=lambda c: RANK_ORD.index(c[1]))
         else:
-            # Following suit or leading: play highest card
+            # Leading or following suit while winning — play highest
             best_card_str = min(candidates, key=lambda c: RANK_ORD.index(c[1]))
     else:
         defender_hand = remaining.get(next_player, [])
