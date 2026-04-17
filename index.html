@@ -730,17 +730,25 @@
     text-transform: uppercase;
   }
 
-  /* ── CLAIM BUTTON ── */
-  #claim-btn {
+  /* ── CLAIM / CONCEDE BUTTONS ── */
+  #claim-btn, #concede-btn {
     padding: 6px 14px; font-size: 0.78rem; font-weight: 700;
-    border: 1px solid rgba(201,168,76,0.5); border-radius: 6px;
-    background: rgba(201,168,76,0.12); color: var(--gold);
-    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    border-radius: 6px; cursor: pointer;
+    font-family: 'Source Sans 3', sans-serif;
     transition: background 0.15s, opacity 0.15s;
     white-space: nowrap;
   }
+  #claim-btn {
+    border: 1px solid rgba(201,168,76,0.5);
+    background: rgba(201,168,76,0.12); color: var(--gold);
+  }
   #claim-btn:hover:not(:disabled) { background: rgba(201,168,76,0.25); }
-  #claim-btn:disabled { opacity: 0.5; cursor: default; }
+  #concede-btn {
+    border: 1px solid rgba(200,60,60,0.5);
+    background: rgba(200,60,60,0.12); color: #e07070;
+  }
+  #concede-btn:hover:not(:disabled) { background: rgba(200,60,60,0.25); }
+  #claim-btn:disabled, #concede-btn:disabled { opacity: 0.5; cursor: default; }
 
   /* ── RESULT OVERLAY ── */
   .result-overlay {
@@ -1605,6 +1613,7 @@
         <div class="tricks-label">Tricks Needed / Target</div>
       </div>
       <button id="claim-btn" style="display:none;" onclick="checkClaim()">✋ Claim</button>
+      <button id="concede-btn" style="display:none;" onclick="checkConcede()">☠ Claim Down</button>
       <button class="btn btn-secondary" style="font-size:0.8rem;" onclick="showPage('lessons')">← Back</button>
     </div>
   </div>
@@ -2814,16 +2823,67 @@ async function resumeGame(lesson, saved) {
 // ── Claim ────────────────────────────────────────────────────────────────────
 
 function updateClaimButton() {
-  const btn = document.getElementById('claim-btn');
+  const btn     = document.getElementById('claim-btn');
+  const concede = document.getElementById('concede-btn');
   if (!btn) return;
-  const show = !state.gameOver
-    && state.mode !== 'defence'
+
+  const betweenTricks = !state.gameOver
     && state.currentTrick.length === 0
-    && isDeclarerOrDummy(state.trickLeader)
     && (state.nsTricks + state.ewTricks) < 13;
-  btn.style.display = show ? '' : 'none';
-  btn.disabled = false;
-  btn.textContent = '✋ Claim';
+
+  const showClaim = betweenTricks
+    && state.mode !== 'defence'
+    && isDeclarerOrDummy(state.trickLeader);
+
+  const showConcede = betweenTricks;
+
+  btn.style.display     = showClaim   ? '' : 'none';
+  concede.style.display = showConcede ? '' : 'none';
+  btn.disabled     = false;
+  concede.disabled = false;
+  btn.textContent     = '✋ Claim';
+  concede.textContent = '☠ Claim Down';
+}
+
+async function checkConcede() {
+  const btn = document.getElementById('concede-btn');
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(API + '/claim/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hands:       state.hands,
+        ns_made:     state.nsTricks,
+        ew_made:     state.ewTricks,
+        contract:    state.contract,
+        declarer:    state.declarer,
+        next_leader: state.trickLeader
+      })
+    });
+    const data = await res.json();
+
+    if (data.pct === 0) {
+      // Contract is dead — award remaining tricks to defenders
+      const remaining    = 13 - state.nsTricks - state.ewTricks;
+      const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+      if (declarerIsNS) state.ewTricks += remaining;
+      else              state.nsTricks += remaining;
+      btn.style.display = 'none';
+      document.getElementById('claim-btn').style.display = 'none';
+      await finishGame();
+    } else {
+      toast(`Contract is still alive — ${data.pct}% secure. Keep playing.`);
+      btn.disabled = false;
+      btn.textContent = '☠ Claim Down';
+    }
+  } catch(e) {
+    toast('Check failed — try again.');
+    btn.disabled = false;
+    btn.textContent = '☠ Claim Down';
+  }
 }
 
 async function checkClaim() {
@@ -3043,8 +3103,9 @@ async function humanPlaysCard(player, card) {
 }
 
 async function playCard(player, card, isHuman) {
-  // Hide claim button once a card is played in the trick
+  // Hide claim/concede buttons once a card is played in the trick
   document.getElementById('claim-btn').style.display = 'none';
+  document.getElementById('concede-btn').style.display = 'none';
 
   removeCard(player, card);
   state.currentTrick.push({ player, card });
