@@ -566,7 +566,7 @@
     flex-direction: column;
     align-items: center;
   }
-  .dummy-suit-col .card + .card { margin-top: -52px; }
+  .dummy-suit-col .card + .card { margin-top: -38px; }
 
   /* Dummy — horizontal layout (dummy at left or right of screen) */
   .dummy-horiz {
@@ -580,7 +580,7 @@
     flex-direction: row;
     align-items: center;
   }
-  .dummy-suit-row .card + .card { margin-left: -30px; }
+  .dummy-suit-row .card + .card { margin-left: -20px; }
 
   .suit-hdr {
     font-size: 13px;
@@ -635,6 +635,7 @@
     font-size: 2rem;
     opacity: 0.3;
   }
+  .card.face-down.side { margin: -56px 0; }
   .card.played-card { opacity: 0.4; }
 
   .card-rank { font-size: 1.1rem; line-height: 1; }
@@ -3277,14 +3278,13 @@ function renderHand(player) {
     return RANK_ORDER.indexOf(a[1]) - RANK_ORDER.indexOf(b[1]);
   });
 
-  // Defenders' cards: face down during play (but we show them for learning)
-  // In a real game you'd hide them, but for teaching we show all
-  const showFaceUp = true; // Always show for teaching purposes
-
   const isSideHand = ['E', 'W'].includes(viewSlot(player));
 
-  // In defence mode show all 4 hands face-up (training tool)
-  const faceDown = isDefenderHand && state.mode !== 'defence';
+  // Defence mode: only student and dummy are visible; everyone else is face-down.
+  // Declarer mode: defenders' hands are face-down.
+  const faceDown = state.mode === 'defence'
+    ? player !== state.studentSeat
+    : isDefenderHand;
 
   // Dummy: render in bridge-style suit columns/rows
   if (isDummy) {
