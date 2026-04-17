@@ -553,6 +553,48 @@
   .cards-row.horizontal { flex-direction: row; }
   .cards-row.vertical { flex-direction: column; gap: 2px; }
 
+  /* Dummy — vertical layout (dummy at top or bottom of screen) */
+  .dummy-vert {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .dummy-suit-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .dummy-suit-col .card + .card { margin-top: -52px; }
+
+  /* Dummy — horizontal layout (dummy at left or right of screen) */
+  .dummy-horiz {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .dummy-suit-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  .dummy-suit-row .card + .card { margin-left: -30px; }
+
+  .suit-hdr {
+    font-size: 13px;
+    font-weight: bold;
+    width: 18px;
+    text-align: center;
+    margin-bottom: 2px;
+  }
+  .suit-hdr.spades   { color: #222; }
+  .suit-hdr.hearts   { color: #c00; }
+  .suit-hdr.diamonds { color: #c00; }
+  .suit-hdr.clubs    { color: #222; }
+  .void-marker { font-size: 12px; color: #888; padding: 4px 6px; }
+
   /* Individual card */
   .card {
     width: 52px;
@@ -3239,10 +3281,51 @@ function renderHand(player) {
   // In a real game you'd hide them, but for teaching we show all
   const showFaceUp = true; // Always show for teaching purposes
 
-  const isSideHand = (player === 'E' || player === 'W');
+  const isSideHand = ['E', 'W'].includes(viewSlot(player));
 
   // In defence mode show all 4 hands face-up (training tool)
   const faceDown = isDefenderHand && state.mode !== 'defence';
+
+  // Dummy: render in bridge-style suit columns/rows
+  if (isDummy) {
+    const dummySlot = viewSlot(player);
+    const isVertical = dummySlot === 'N' || dummySlot === 'S';
+
+    const SUIT_CLASS = { S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' };
+    const bySuit = {};
+    suitOrder.forEach(s => { bySuit[s] = []; });
+    sorted.forEach(card => bySuit[card[0]].push(card));
+
+    function cardDiv(card) {
+      return `<div class="card ${SUIT_NAMES[card[0]]}" data-card="${card}">
+        <span class="card-rank">${card[1]}</span>
+        <span class="card-suit">${SUIT_SYMBOLS[card[0]]}</span>
+      </div>`;
+    }
+
+    if (isVertical) {
+      container.innerHTML = `<div class="dummy-vert">${
+        suitOrder.map(s => {
+          const cards = bySuit[s];
+          return `<div class="dummy-suit-col">
+            <div class="suit-hdr ${SUIT_CLASS[s]}">${SUIT_SYMBOLS[s]}</div>
+            ${cards.length ? cards.map(cardDiv).join('') : '<span class="void-marker">—</span>'}
+          </div>`;
+        }).join('')
+      }</div>`;
+    } else {
+      container.innerHTML = `<div class="dummy-horiz">${
+        suitOrder.map(s => {
+          const cards = bySuit[s];
+          return `<div class="dummy-suit-row">
+            <div class="suit-hdr ${SUIT_CLASS[s]}">${SUIT_SYMBOLS[s]}</div>
+            ${cards.length ? cards.map(cardDiv).join('') : '<span class="void-marker">—</span>'}
+          </div>`;
+        }).join('')
+      }</div>`;
+    }
+    return;
+  }
 
   container.innerHTML = sorted.map(card => {
     const suit = card[0];
