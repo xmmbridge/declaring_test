@@ -3421,11 +3421,14 @@ function renderTrickArea() {
 }
 
 function updateTricksDisplay() {
-  const declarerIsNS = state.declarer === 'N' || state.declarer === 'S';
+  const declarerIsNS  = state.declarer === 'N' || state.declarer === 'S';
   const declarerTricks = declarerIsNS ? state.nsTricks : state.ewTricks;
-  
-  document.getElementById('tricks-display').textContent =
-    declarerTricks + ' / ' + state.target;
+  const defenderTricks = declarerIsNS ? state.ewTricks : state.nsTricks;
+
+  const shown  = state.mode === 'defence' ? defenderTricks : declarerTricks;
+  const target = state.mode === 'defence' ? (14 - state.target) : state.target;
+
+  document.getElementById('tricks-display').textContent = shown + ' / ' + target;
   document.getElementById('ns-tricks').textContent = state.nsTricks;
   document.getElementById('ew-tricks').textContent = state.ewTricks;
 }
