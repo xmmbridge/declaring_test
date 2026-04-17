@@ -566,7 +566,7 @@
     flex-direction: column;
     align-items: center;
   }
-  .dummy-suit-col .card + .card { margin-top: -38px; }
+  .dummy-suit-col .card + .card { margin-top: -20px; }
 
   /* Dummy — horizontal layout (dummy at left or right of screen) */
   .dummy-horiz {
@@ -580,7 +580,7 @@
     flex-direction: row;
     align-items: center;
   }
-  .dummy-suit-row .card + .card { margin-left: -20px; }
+  .dummy-suit-row .card + .card { margin-left: -5px; }
 
   .suit-hdr {
     font-size: 13px;
@@ -635,7 +635,8 @@
     font-size: 2rem;
     opacity: 0.3;
   }
-  .card.face-down.side { margin: -56px 0; }
+  .card.face-down.side { margin: 0; }
+  .card.face-down.side + .card.face-down.side { margin-top: -56px; }
   .card.played-card { opacity: 0.4; }
 
   .card-rank { font-size: 1.1rem; line-height: 1; }
