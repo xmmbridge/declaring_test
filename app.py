@@ -1134,14 +1134,12 @@ def save_attempt():
     tricks_made = d['tricks_made']
     level       = int(contract[0])
     diff        = tricks_made - (level + 6)
-    result      = ('Made +'+str(diff) if diff > 0 else
-                   'Made exactly'     if diff == 0 else
-                   'Down '+str(abs(diff)))
     score        = calculate_score(contract, tricks_made)
     play_sequence = d.get('play_sequence', [])
 
-    # Generate LIN
+    # Generate LIN + detect lesson mode
     lin_data = ''
+    lesson_row = None
     try:
         conn_r = get_db()
         lesson_row = conn_r.execute('SELECT * FROM lessons WHERE id=?', (d['lesson_id'],)).fetchone()
@@ -1150,6 +1148,17 @@ def save_attempt():
             lin_data = generate_lin(dict(lesson_row), play_sequence, user['username'])
     except Exception as e:
         print('LIN generation error:', e)
+
+    # Result from the player's perspective
+    mode = (lesson_row['mode'] if lesson_row and lesson_row['mode'] else 'declarer')
+    if mode == 'defence':
+        # Defender wins when declarer goes down (diff < 0); player_diff positive = beat by X
+        player_diff = -diff
+    else:
+        player_diff = diff
+    result = ('Pass +'+str(player_diff) if player_diff > 0 else
+              'Pass'                     if player_diff == 0 else
+              'Fail '+str(abs(player_diff)))
 
     conn = get_db()
     cur  = conn.execute(
@@ -1216,11 +1225,11 @@ def my_attempt_status():
     status = {}
     for row in rows:
         lid  = str(row['lesson_id'])
-        made = 'Made' in row['result']
+        passed = row['result'].startswith('Pass') or row['result'].startswith('Made')
         if lid not in status:
             status[lid] = {'attempts': 0, 'made': False, 'first_try': False}
         status[lid]['attempts'] += 1
-        if made and not status[lid]['made']:
+        if passed and not status[lid]['made']:
             status[lid]['made']      = True
             status[lid]['first_try'] = (status[lid]['attempts'] == 1)
     return jsonify(status)
@@ -1246,7 +1255,7 @@ def teacher_students():
                 if lid not in per_lesson:
                     per_lesson[lid] = {'cnt': 0, 'made': False, 'first_try': False}
                 per_lesson[lid]['cnt'] += 1
-                if 'Made' in a['result'] and not per_lesson[lid]['made']:
+                if (a['result'].startswith('Pass') or a['result'].startswith('Made')) and not per_lesson[lid]['made']:
                     per_lesson[lid]['made'] = True
                     per_lesson[lid]['first_try'] = (per_lesson[lid]['cnt'] == 1)
             cnt_none = cnt_down = cnt_made = cnt_first = 0
@@ -1256,11 +1265,11 @@ def teacher_students():
                 if not st:
                     status = 'none';  cnt_none  += 1
                 elif not st['made']:
-                    status = 'down';  cnt_down  += 1
+                    status = 'fail';  cnt_down  += 1
                 elif st['first_try']:
                     status = 'first'; cnt_first += 1
                 else:
-                    status = 'made';  cnt_made  += 1
+                    status = 'pass';  cnt_made  += 1
                 lesson_status[lid] = status
             pct = round((cnt_made + cnt_first) / total * 100) if total else 0
             result.append({

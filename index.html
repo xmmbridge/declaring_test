@@ -196,8 +196,8 @@
     letter-spacing: 0.03em;
   }
   .hw-badge-none  { background: rgba(255,255,255,0.08); color: rgba(245,240,232,0.4); }
-  .hw-badge-down  { background: rgba(180,50,50,0.35);   color: #f08080; border: 1px solid rgba(180,50,50,0.5); }
-  .hw-badge-made  { background: rgba(60,160,60,0.3);    color: #80e080; border: 1px solid rgba(60,160,60,0.5); }
+  .hw-badge-fail  { background: rgba(180,50,50,0.35);   color: #f08080; border: 1px solid rgba(180,50,50,0.5); }
+  .hw-badge-pass  { background: rgba(60,160,60,0.3);    color: #80e080; border: 1px solid rgba(60,160,60,0.5); }
   .hw-badge-rainbow {
     background: linear-gradient(90deg, #c9a84c, #e8d07a, #c9a84c);
     color: var(--green-dark);
@@ -338,8 +338,8 @@
   .stu-grid tbody tr:last-child td { border-bottom: none; }
   .sg-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; }
   .sg-dot.first { background: var(--gold); }
-  .sg-dot.made  { background: #5cba6a; }
-  .sg-dot.down  { background: #c96060; }
+  .sg-dot.pass  { background: #5cba6a; }
+  .sg-dot.fail  { background: #c96060; }
   .sg-dot.none  { background: rgba(255,255,255,0.1); }
   .stu-grid-legend {
     display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px;
@@ -770,8 +770,8 @@
     max-width: 540px;
     width: 90%;
   }
-  .result-box.made #result-heading { color: #88ee88; }
-  .result-box.down #result-heading { color: #ee6666; }
+  .result-box.pass #result-heading { color: #88ee88; }
+  .result-box.fail #result-heading { color: #ee6666; }
   .result-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 32px; }
 
   /* ── STUDENT NAME INPUT ── */
@@ -823,8 +823,8 @@
     font-size: 0.9rem;
   }
   .scores-table tr:hover td { background: rgba(255,255,255,0.03); }
-  .result-made { color: #88ee88; font-weight: 600; }
-  .result-down { color: #ee6666; font-weight: 600; }
+  .result-pass { color: #88ee88; font-weight: 600; }
+  .result-fail { color: #ee6666; font-weight: 600; }
 
   /* ── TOAST ── */
   .toast {
@@ -2119,9 +2119,9 @@ async function loadLessons(forScores=false) {
     const hwBadge = (lessonId) => {
       const s = myStatus[String(lessonId)];
       if (!s) return '<span class="hw-badge hw-badge-none">——</span>';
-      if (!s.made) return '<span class="hw-badge hw-badge-down">▼ Down</span>';
+      if (!s.made) return '<span class="hw-badge hw-badge-fail">✗ Fail</span>';
       if (s.first_try) return '<span class="hw-badge hw-badge-rainbow">★ First Try</span>';
-      return '<span class="hw-badge hw-badge-made">✓ Made</span>';
+      return '<span class="hw-badge hw-badge-pass">✓ Pass</span>';
     };
 
     const cardHtml = (l, showBadge=false) => `
@@ -3250,20 +3250,12 @@ async function finishGame() {
 
   // Show result
   const box = document.getElementById('result-box');
-  // Defence: good = went down (diff < 0); bad = declarer made it
-  const defenceGood = state.mode === 'defence' && diff < 0;
-  const defenceBad  = state.mode === 'defence' && diff >= 0;
-  box.className = 'result-box ' + (defenceGood || (state.mode !== 'defence' && diff >= 0) ? 'made' : 'down');
-  if (state.mode === 'defence') {
-    document.getElementById('result-heading').textContent =
-      diff < 0 ? `DOWN ${Math.abs(diff)}` : (diff === 0 ? 'MADE' : `MADE +${diff}`);
-  } else {
-    document.getElementById('result-heading').textContent =
-      diff >= 0 ? (diff > 0 ? `MADE +${diff}` : 'MADE') : `DOWN ${Math.abs(diff)}`;
-  }
-  
-  // Player success: declarer made it, OR defender went down
   const playerSucceeded = state.mode === 'defence' ? diff < 0 : diff >= 0;
+  const playerDiff = state.mode === 'defence' ? -diff : diff;
+  box.className = 'result-box ' + (playerSucceeded ? 'pass' : 'fail');
+  document.getElementById('result-heading').textContent =
+    playerDiff > 0 ? `PASS +${playerDiff}` : playerDiff === 0 ? 'PASS' : `FAIL −${Math.abs(playerDiff)}`;
+  
   const quipType = playerSucceeded ? 'made' : 'down';
   const quipList = playerSucceeded ? QUIPS_MADE : QUIPS_DOWN;
   const holoSet  = playerSucceeded ? QUIPS_MADE_HOLO : QUIPS_DOWN_HOLO;
@@ -3501,7 +3493,7 @@ async function loadScores() {
         <tr>
           <td>${escHtml(a.student_name)}</td>
           <td>${escHtml(a.lesson_title || a.title || '—')}</td>
-          <td class="${a.result.includes('Made') ? 'result-made' : 'result-down'}">
+          <td class="${(a.result.startsWith('Pass') || a.result.startsWith('Made')) ? 'result-pass' : 'result-fail'}">
             ${escHtml(a.result)}
           </td>
           <td>${a.tricks_made}</td>
@@ -4124,8 +4116,8 @@ function renderGroupGrid(g) {
         </table>
         <div class="stu-grid-legend">
           <span><span class="sg-dot first" style="display:inline-block"></span> First try</span>
-          <span><span class="sg-dot made"  style="display:inline-block"></span> Made</span>
-          <span><span class="sg-dot down"  style="display:inline-block"></span> Down</span>
+          <span><span class="sg-dot pass"  style="display:inline-block"></span> Pass</span>
+          <span><span class="sg-dot fail"  style="display:inline-block"></span> Fail</span>
           <span><span class="sg-dot none"  style="display:inline-block"></span> Not started</span>
         </div>
       </div>
