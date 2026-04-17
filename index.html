@@ -3287,8 +3287,8 @@ function renderHand(player) {
     ? player !== state.studentSeat
     : isDefenderHand;
 
-  // Dummy: render in bridge-style suit columns/rows
-  if (isDummy) {
+  // Dummy in defence mode: render in bridge-style suit columns/rows
+  if (isDummy && state.mode === 'defence') {
     const dummySlot = viewSlot(player);
     const isVertical = dummySlot === 'N' || dummySlot === 'S';
 
