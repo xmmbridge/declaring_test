@@ -929,25 +929,29 @@ def _defender_tiebreak(candidates, hand_cards, current_trick,
     if len(candidates) == 1:
         return candidates[0]
 
-    # ── Try BEN ONNX first (falls through to heuristics on failure) ───────────
+    position = len(current_trick)   # 0=lead, 1=2nd, 2=3rd, 3=4th
+
+    # ── Discard: void in led suit — always play lowest to preserve honours ────
+    # Must run before BEN so BEN can't throw winners either.
+    if current_trick:
+        led_suit = current_trick[0]['card'][0]
+        if not any(c[0] == led_suit for c in hand_cards):
+            return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+
+    # ── 2nd / 4th hand: cheapest card — run before BEN ───────────────────────
+    # Second-hand-low is a firm principle: playing high in 2nd seat gifts
+    # declarer a free finesse by revealing where the honour sits.
+    # BEN is double-dummy and doesn't know to protect this single-dummy guess.
+    if position in (1, 3):
+        return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+
+    # ── Try BEN ONNX (on-lead and 3rd hand only) ─────────────────────────────
     if contract and next_player and declarer:
         ben = _ben_pick(candidates, hand_cards, dummy_hand or [],
                         contract, current_trick, last_trick or [],
                         last_trick_leader, next_player, declarer)
         if ben:
             return ben
-
-    position = len(current_trick)   # 0=lead, 1=2nd, 2=3rd, 3=4th
-
-    # ── Discard: void in led suit — always play lowest to preserve honours ────
-    if current_trick:
-        led_suit = current_trick[0]['card'][0]
-        if not any(c[0] == led_suit for c in hand_cards):
-            return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
-
-    # ── 2nd / 4th hand: cheapest tied card ───────────────────────────────────
-    if position in (1, 3):
-        return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
 
     # ── 3rd hand: high — but lower of touching sequence at the top ───────────
     if position == 2:
