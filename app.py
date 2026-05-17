@@ -939,12 +939,39 @@ def _defender_tiebreak(candidates, hand_cards, current_trick,
 
     position = len(current_trick)   # 0=lead, 1=2nd, 2=3rd, 3=4th
 
+    # ── Discard: void in led suit — always play lowest to preserve honours ────
+    if current_trick:
+        led_suit = current_trick[0]['card'][0]
+        if not any(c[0] == led_suit for c in hand_cards):
+            return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+
     # ── 2nd / 4th hand: cheapest tied card ───────────────────────────────────
     if position in (1, 3):
         return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
 
     # ── 3rd hand: high — but lower of touching sequence at the top ───────────
     if position == 2:
+        # If partner is already winning the trick, play low — don't waste an honour
+        if current_trick and next_player and declarer:
+            led_suit = current_trick[0]['card'][0]
+            trump = contract[1] if contract and len(contract) > 1 and contract[1] != 'N' else None
+            cur_winner = current_trick[0]['player']
+            cur_ridx   = RANK_ORD.index(current_trick[0]['card'][1])
+            cur_trump  = bool(trump and current_trick[0]['card'][0] == trump)
+            for entry in current_trick[1:]:
+                ec = entry['card']
+                ec_trump = bool(trump and ec[0] == trump)
+                ec_ridx  = RANK_ORD.index(ec[1])
+                if ec_trump and not cur_trump:
+                    cur_winner, cur_ridx, cur_trump = entry['player'], ec_ridx, True
+                elif ec_trump and cur_trump and ec_ridx < cur_ridx:
+                    cur_winner, cur_ridx = entry['player'], ec_ridx
+                elif not cur_trump and ec[0] == led_suit and ec_ridx < cur_ridx:
+                    cur_winner, cur_ridx = entry['player'], ec_ridx
+            partner = {'N':'S','S':'N','E':'W','W':'E'}[next_player]
+            if cur_winner == partner:
+                return max(candidates, key=lambda c: RANK_ORD.index(c[1]))
+
         sorted_cands = sorted(candidates, key=lambda c: RANK_ORD.index(c[1]))
         best_ridx = RANK_ORD.index(sorted_cands[0][1])
         if len(sorted_cands) >= 2:
